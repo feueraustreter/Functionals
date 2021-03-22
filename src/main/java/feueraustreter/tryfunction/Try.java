@@ -78,14 +78,14 @@ public class Try<V, E extends Throwable> {
     @SuppressWarnings({"java:S1181" /* Catch exception */, "unchecked"})
     public static <V, E extends Throwable> Try<V, E> tryIt(TryFunction<V, E> f) {
         try {
-            return Try.Success(f.get());
+            return Try.Success(f.f());
         } catch (Throwable e) {
             return Try.Failure((E) e);
         }
     }
 
     public interface TryFunction<V, E extends Throwable> {
-        V get() throws E;
+        V f() throws E;
     }
 
 }
