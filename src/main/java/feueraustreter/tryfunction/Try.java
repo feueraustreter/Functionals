@@ -14,6 +14,12 @@
 package feueraustreter.tryfunction;
 
 import lombok.Getter;
+import lombok.NonNull;
+
+import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 
 @Getter
 @SuppressWarnings("squid:S00100") // Method name
@@ -31,7 +37,7 @@ public class Try<V, E extends Throwable> {
         return new Try<>(value, null);
     }
 
-    public static <V, E extends Throwable> Try<V, E> Failure(E exception) {
+    public static <V, E extends Throwable> Try<V, E> Failure(@NonNull E exception) {
         return new Try<>(null, exception);
     }
 
@@ -43,19 +49,43 @@ public class Try<V, E extends Throwable> {
         return failure != null;
     }
 
+    public boolean hasValue() {
+        return success != null;
+    }
+
+    public boolean isPresent() {
+        if (failure != null) {
+            return false;
+        }
+        if (success == null) {
+            return true;
+        }
+        if (success instanceof Optional<?>) {
+            return ((Optional<?>) success).isPresent();
+        }
+        if (success instanceof OptionalInt) {
+            return ((OptionalInt) success).isPresent();
+        }
+        if (success instanceof OptionalLong) {
+            return ((OptionalLong) success).isPresent();
+        }
+        if (success instanceof OptionalDouble) {
+            return ((OptionalDouble) success).isPresent();
+        }
+        return true;
+    }
+
     @SuppressWarnings({"java:S1181" /* Catch exception */, "unchecked"})
     public static <V, E extends Throwable> Try<V, E> tryIt(TryFunction<V, E> f) {
         try {
-            return Try.Success(f.f());
+            return Try.Success(f.get());
         } catch (Throwable e) {
             return Try.Failure((E) e);
         }
     }
 
     public interface TryFunction<V, E extends Throwable> {
-
-        V f() throws E;
-
+        V get() throws E;
     }
 
 }
