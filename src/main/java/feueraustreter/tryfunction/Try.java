@@ -22,7 +22,7 @@ public class Try<V, E extends Throwable> {
     private final V success;
     private final E failure;
 
-    public Try(V success, E failure) {
+    private Try(V success, E failure) {
         this.success = success;
         this.failure = failure;
     }
