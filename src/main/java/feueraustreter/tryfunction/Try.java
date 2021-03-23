@@ -24,7 +24,13 @@ import java.util.stream.Stream;
 
 /**
  * The Try class is a wrapper around a value or an exception. This can be useful in situations
- * where you want to map some data to another in a {@link Stream}.
+ * where you want to map some data to another in a {@link Stream}. To construct a Try instance
+ * you can either use {@link #Success(Object)} for a Try instance which is considered
+ * successful or {@link #Failure(Throwable)} for a Try instance which is considered a failure.
+ * You can also create a Try instance by using {@link #tryIt(TryFunction)}. The
+ * {@link TryFunction} is used to either return a value or throw an Exception which is catched
+ * in the {@link #tryIt(TryFunction)} method, which will then either return
+ * {@link #Success(Object)} or {@link #Failure(Throwable)}.
  *
  * @param <V> the success type to use
  * @param <E> the failure type to use
@@ -68,16 +74,16 @@ public class Try<V, E extends Throwable> {
     /**
      * Check if the Try was successful or failed.
      *
-     * @return {@code true} if any only if {@link #failure} is not null, {@code false} otherwise
+     * @return {@code true} if any only if {@link #failure} is null, {@code false} otherwise
      */
     public boolean successful() {
         return failure == null;
     }
 
     /**
-     * Check if the Try failed.
+     * Check if the Try failed or was successful.
      *
-     * @return {@code true} if any only if {@link #failure} is null, {@code false} otherwise
+     * @return {@code true} if any only if {@link #failure} is not null, {@code false} otherwise
      */
     public boolean failed() {
         return failure != null;
@@ -121,6 +127,15 @@ public class Try<V, E extends Throwable> {
         return true;
     }
 
+    /**
+     * This method is used in conjunction with the {@link TryFunction} interface to either
+     * return a successful Try or failed Try instance.
+     *
+     * @param f the try function to use
+     * @param <V> the success type to use
+     * @param <E> the failure type to use
+     * @return either a successful Try instance or a failed one
+     */
     @SuppressWarnings({"java:S1181" /* Catch exception */, "unchecked"})
     public static <V, E extends Throwable> Try<V, E> tryIt(TryFunction<V, E> f) {
         try {
@@ -130,6 +145,23 @@ public class Try<V, E extends Throwable> {
         }
     }
 
+    /**
+     * This interface is used in the {@link #tryIt(TryFunction)} method to either return an
+     * Object or throw an Exception. The {@link #tryIt(TryFunction)} method will wrap the
+     * return value from the method {@link #f()} to either a successful Try instance or a
+     * failed Try instance, by calling {@link #Success(Object)} or {@link #Failure(Throwable)}
+     * respectively. Returning null from {@link #f()} is considered {@link #successful()}.
+     * But will return {@code false} for {@link #hasValue()}. If you return {@link Optional},
+     * {@link OptionalInt}, {@link OptionalLong} or {@link OptionalDouble} the
+     * {@link #isPresent()} method calls will be delegated to the optional itself. By using
+     * this interface in conjunction with the {@link #tryIt(TryFunction)} method the
+     * Exception type will be lost, if not explicitly casting the {@link TryFunction} to the
+     * desired type.
+     *
+     * @param <V> the success type to use
+     * @param <E> the failure type to use
+     */
+    @FunctionalInterface
     public interface TryFunction<V, E extends Throwable> {
         V f() throws E;
     }
