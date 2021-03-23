@@ -53,7 +53,7 @@ public class Try<V, E extends Throwable> {
      * @param value the success value
      * @param <V> the success type to use
      * @param <E> the failure type to use
-     * @return the Try instance containing the {@param value} as a success
+     * @return the Try instance containing the value as a success
      */
     public static <V, E extends Throwable> Try<V, E> Success(V value) {
         return new Try<>(value, null);
@@ -65,7 +65,7 @@ public class Try<V, E extends Throwable> {
      * @param exception the exception value
      * @param <V> the success type to use
      * @param <E> the failure type to use
-     * @return the Try instance containing the {@param exception} as a failure
+     * @return the Try instance containing the exception as a failure
      */
     public static <V, E extends Throwable> Try<V, E> Failure(@NonNull E exception) {
         return new Try<>(null, exception);
