@@ -28,7 +28,7 @@ import java.util.stream.Stream;
  * you can either use {@link #Success(Object)} for a Try instance which is considered
  * successful or {@link #Failure(Throwable)} for a Try instance which is considered a failure.
  * You can also create a Try instance by using {@link #tryIt(TryFunction)}. The
- * {@link TryFunction} is used to either return a value or throw an Exception which is catched
+ * {@link TryFunction} is used to either return a value or throw an Exception which is caught
  * in the {@link #tryIt(TryFunction)} method, which will then either return
  * {@link #Success(Object)} or {@link #Failure(Throwable)}.
  *
