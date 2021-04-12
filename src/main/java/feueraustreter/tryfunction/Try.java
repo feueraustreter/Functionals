@@ -74,7 +74,7 @@ public class Try<V, E extends Throwable> {
     /**
      * Check if the Try was successful or failed.
      *
-     * @return {@code true} if any only if {@link #failure} is null, {@code false} otherwise
+     * @return {@code true} if and only if {@link #failure} is null, {@code false} otherwise
      */
     public boolean successful() {
         return failure == null;
@@ -83,7 +83,7 @@ public class Try<V, E extends Throwable> {
     /**
      * Check if the Try failed or was successful.
      *
-     * @return {@code true} if any only if {@link #failure} is not null, {@code false} otherwise
+     * @return {@code true} if and only if {@link #failure} is not null, {@code false} otherwise
      */
     public boolean failed() {
         return failure != null;
@@ -92,7 +92,7 @@ public class Try<V, E extends Throwable> {
     /**
      * Check if the Try is successful and {@link #success} is not null.
      *
-     * @return {@code true} if any only is {@link #success} is not null, {@code false} otherwise
+     * @return {@code true} if and only is {@link #success} is not null, {@code false} otherwise
      */
     public boolean hasValue() {
         return success != null;
