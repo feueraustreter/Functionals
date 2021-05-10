@@ -35,7 +35,15 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     @Override
     public <K> FunctionalStream<K> flatMap(Function<? super T, FunctionalStream<K>> mapper) {
         FunctionalStreamImpl<K> functionalStream = new FunctionalStreamImpl<>(root);
-        downstream = t -> mapper.apply(t).forEach(functionalStream.downstream);
+        downstream = t -> {
+            FunctionalStream<K> current = mapper.apply(t);
+            current.forEach(k -> {
+                functionalStream.downstream.accept(k);
+                if (root.shortCircuit) {
+                    current.close();
+                }
+            });
+        };
         return functionalStream;
     }
 
@@ -182,6 +190,11 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         AtomicLong result = new AtomicLong(0);
         eval(t -> result.incrementAndGet());
         return result.get();
+    }
+
+    @Override
+    public void close() {
+        shortCircuit = true;
     }
 
     private void eval(Sink<T> sink) {

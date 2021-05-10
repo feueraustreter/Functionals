@@ -58,4 +58,6 @@ public interface FunctionalStream<T> {
 
     long count();
 
+    void close();
+
 }
