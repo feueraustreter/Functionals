@@ -11,9 +11,12 @@ public class Test {
         stringList.add("Hello World2");
         stringList.add("Hello World3");
         stringList.add("Hello World4");
-        FunctionalStream.of(stringList).tap(stringFunctionalStream -> {
-            return stringFunctionalStream.map(s -> s.substring(1)).map(String::toUpperCase);
-        }).peek(System.out::println).eval();
+        String t = FunctionalStream.of(stringList)
+                .tap(stringFunctionalStream -> {
+                    return stringFunctionalStream.map(s -> s.substring(1)).map(String::toUpperCase);
+                })
+                .joining("/");
+        System.out.println(t);
     }
 
 }
