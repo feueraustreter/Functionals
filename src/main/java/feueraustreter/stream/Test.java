@@ -11,11 +11,9 @@ public class Test {
         stringList.add("Hello World2");
         stringList.add("Hello World3");
         stringList.add("Hello World4");
-        String t = FunctionalStream.of(stringList)
-                .tap(stringFunctionalStream -> {
-                    return stringFunctionalStream.map(s -> s.substring(1)).map(String::toUpperCase);
-                })
-                .joining("/");
+        boolean t = FunctionalStream.of(stringList)
+                .peek(System.out::println)
+                .noneMatch(s -> s.startsWith("H"));
         System.out.println(t);
     }
 

@@ -7,7 +7,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 public interface FunctionalStream<T> {
 
@@ -23,21 +22,25 @@ public interface FunctionalStream<T> {
         return new FunctionalStreamImpl<>(stream.iterator());
     }
 
-    <K> FunctionalStream<K> map(Function<T, K> mapper);
+    <K> FunctionalStream<K> map(Function<? super T, K> mapper);
 
-    <K> FunctionalStream<K> flatMap(Function<T, FunctionalStream<K>> mapper);
+    <K> FunctionalStream<K> flatMap(Function<? super T, FunctionalStream<K>> mapper);
 
-    FunctionalStream<T> filter(Predicate<T> filter);
+    FunctionalStream<T> filter(Predicate<? super T> filter);
+
+    default <K> FunctionalStream<K> ofType(Class<K> type) {
+        return filter(t -> type.isAssignableFrom(t == null ? null : t.getClass())).map(type::cast);
+    }
 
     <K> FunctionalStream<K> tap(Function<FunctionalStream<T>, FunctionalStream<K>> tappingFunction);
 
-    FunctionalStream<T> peek(Consumer<T> consumer);
+    FunctionalStream<T> peek(Consumer<? super T> consumer);
 
     FunctionalStream<T> limit(long count);
 
     FunctionalStream<T> skip(long count);
 
-    void forEach(Consumer<T> consumer);
+    void forEach(Consumer<? super T> consumer);
 
     List<T> toList();
 
@@ -46,5 +49,13 @@ public interface FunctionalStream<T> {
     String joining(String delimiter);
 
     void eval();
+
+    boolean anyMatch(Predicate<? super T> predicate);
+
+    boolean allMatch(Predicate<? super T> predicate);
+
+    boolean noneMatch(Predicate<? super T> predicate);
+
+    long count();
 
 }
