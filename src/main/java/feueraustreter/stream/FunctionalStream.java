@@ -28,6 +28,11 @@ public interface FunctionalStream<T> {
 
     FunctionalStream<T> filter(Predicate<? super T> filter);
 
+    default FunctionalStream<T> distinct() {
+        Set<T> set = new HashSet<>();
+        return filter(set::add);
+    }
+
     default <K> FunctionalStream<K> ofType(Class<K> type) {
         return filter(t -> type.isAssignableFrom(t == null ? null : t.getClass())).map(type::cast);
     }
@@ -35,6 +40,14 @@ public interface FunctionalStream<T> {
     <K> FunctionalStream<K> tap(Function<FunctionalStream<T>, FunctionalStream<K>> tappingFunction);
 
     FunctionalStream<T> peek(Consumer<? super T> consumer);
+
+    default FunctionalStream<T> peekResult(List<T> list) {
+        return peek(list::add);
+    }
+
+    default FunctionalStream<T> peekResult(Set<T> set) {
+        return peek(set::add);
+    }
 
     FunctionalStream<T> limit(long count);
 
