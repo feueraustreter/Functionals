@@ -2,9 +2,7 @@ package feueraustreter.stream;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.function.*;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
@@ -37,7 +35,9 @@ public interface FunctionalStream<T> {
         return filter(t -> type.isAssignableFrom(t == null ? null : t.getClass())).map(type::cast);
     }
 
-    <K> FunctionalStream<K> tap(Function<FunctionalStream<T>, FunctionalStream<K>> tappingFunction);
+    default <K> FunctionalStream<K> tap(Function<FunctionalStream<T>, FunctionalStream<K>> tappingFunction) {
+        return tappingFunction.apply(this);
+    }
 
     FunctionalStream<T> peek(Consumer<? super T> consumer);
 
@@ -114,5 +114,11 @@ public interface FunctionalStream<T> {
         });
         return result.get();
     }
+
+    Stream<T> toStream();
+
+    T[] toArray(IntFunction<T[]> intFunction);
+
+    T reduce(T identity, BinaryOperator<T> accumulator);
 
 }

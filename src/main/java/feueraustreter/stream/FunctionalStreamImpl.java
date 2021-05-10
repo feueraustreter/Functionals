@@ -6,13 +6,12 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.function.*;
 import java.util.stream.Collector;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
-public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
+public class FunctionalStreamImpl<T> implements FunctionalStream<T>, Iterable<T> {
 
     private boolean shortCircuit = false;
     private FunctionalStreamImpl<?> root;
@@ -59,11 +58,6 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
             }
         };
         return functionalStream;
-    }
-
-    @Override
-    public <K> FunctionalStream<K> tap(Function<FunctionalStream<T>, FunctionalStream<K>> tappingFunction) {
-        return tappingFunction.apply(this);
     }
 
     @Override
@@ -252,15 +246,55 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     private void eval(Sink<T> sink) {
         downstream = sink;
-        root.rootEval();
+        root.evalAll();
     }
 
-    private void rootEval() {
+    private void evalAll() {
         while (streamSource.hasNext()) {
-            downstream.accept(streamSource.next());
+            evalNext();
             if (shortCircuit) {
                 return;
             }
         }
+    }
+
+    private void evalNext() {
+        downstream.accept(streamSource.next());
+    }
+
+    @Override
+    public Iterator<T> iterator() {
+        AtomicReference<T> atomicReference = new AtomicReference<>();
+        downstream = atomicReference::set;
+        return new Iterator<T>() {
+            @Override
+            public boolean hasNext() {
+                return root.streamSource.hasNext() && !root.shortCircuit;
+            }
+
+            @Override
+            public T next() {
+                root.evalNext();
+                return atomicReference.get();
+            }
+        };
+    }
+
+    @Override
+    public Stream<T> toStream() {
+        return StreamSupport.stream(spliterator(), false);
+    }
+
+    @Override
+    public T[] toArray(IntFunction<T[]> intFunction) {
+        List<T> list = toList();
+        return list.toArray(intFunction.apply(list.size()));
+    }
+
+    @Override
+    public T reduce(T identity, BinaryOperator<T> accumulator) {
+        AtomicReference<T> result = new AtomicReference<>(identity);
+        eval(t -> result.set(accumulator.apply(result.get(), t)));
+        return result.get();
     }
 }
