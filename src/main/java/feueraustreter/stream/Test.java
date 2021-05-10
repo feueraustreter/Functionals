@@ -2,6 +2,7 @@ package feueraustreter.stream;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Test {
 
@@ -11,9 +12,9 @@ public class Test {
         stringList.add("Hello World2");
         stringList.add("Hello World3");
         stringList.add("Hello World4");
-        boolean t = FunctionalStream.of(stringList)
+        String t = FunctionalStream.of(stringList)
                 .peek(System.out::println)
-                .noneMatch(s -> s.startsWith("H"));
+                .collect(Collectors.joining());
         System.out.println(t);
     }
 

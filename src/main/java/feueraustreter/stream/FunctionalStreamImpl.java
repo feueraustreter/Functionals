@@ -5,9 +5,12 @@ import lombok.NonNull;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collector;
 
 public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
@@ -195,6 +198,56 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     @Override
     public void close() {
         shortCircuit = true;
+    }
+
+    @Override
+    public Optional<T> findFirst() {
+        AtomicReference<Optional<T>> result = new AtomicReference<>(Optional.empty());
+        eval(t -> {
+            result.set(Optional.of(t));
+            root.shortCircuit = true;
+        });
+        return result.get();
+    }
+
+    @Override
+    public Optional<T> min(Comparator<T> comparator) {
+        AtomicReference<Optional<T>> result = new AtomicReference<>(Optional.empty());
+        eval(t -> {
+            Optional<T> current = result.get();
+            if (!current.isPresent()) {
+                result.set(Optional.of(t));
+                return;
+            }
+            if (comparator.compare(current.get(), t) > 0) {
+                result.set(Optional.of(t));
+            }
+        });
+        return result.get();
+    }
+
+    @Override
+    public Optional<T> max(Comparator<T> comparator) {
+        AtomicReference<Optional<T>> result = new AtomicReference<>(Optional.empty());
+        eval(t -> {
+            Optional<T> current = result.get();
+            if (!current.isPresent()) {
+                result.set(Optional.of(t));
+                return;
+            }
+            if (comparator.compare(current.get(), t) < 0) {
+                result.set(Optional.of(t));
+            }
+        });
+        return result.get();
+    }
+
+    @Override
+    public <R, A> R collect(Collector<? super T, A, R> collector) {
+        A container = collector.supplier().get();
+        BiConsumer<A, ? super T> biConsumer = collector.accumulator();
+        eval(t -> biConsumer.accept(container, t));
+        return collector.finisher().apply(container);
     }
 
     private void eval(Sink<T> sink) {

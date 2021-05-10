@@ -1,11 +1,11 @@
 package feueraustreter.stream;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collector;
 import java.util.stream.Stream;
 
 public interface FunctionalStream<T> {
@@ -56,8 +56,50 @@ public interface FunctionalStream<T> {
 
     boolean noneMatch(Predicate<? super T> predicate);
 
-    long count();
+    default long count() {
+        return longSum(t -> 1L);
+    }
 
     void close();
+
+    Optional<T> findFirst();
+
+    Optional<T> min(Comparator<T> comparator);
+
+    Optional<T> max(Comparator<T> comparator);
+
+    <R, A> R collect(Collector<? super T, A, R> collector);
+
+    default float floatSum(Function<T, Float> floatFunction) {
+        AtomicReference<Float> result = new AtomicReference<>(0.0F);
+        map(floatFunction).forEach(number -> {
+            result.set(result.get() + number);
+        });
+        return result.get();
+    }
+
+    default int integerSum(Function<T, Integer> integerFunction) {
+        AtomicReference<Integer> result = new AtomicReference<>(0);
+        map(integerFunction).forEach(number -> {
+            result.set(result.get() + number);
+        });
+        return result.get();
+    }
+
+    default double doubleSum(Function<T, Double> doubleFunction) {
+        AtomicReference<Double> result = new AtomicReference<>(0.0);
+        map(doubleFunction).forEach(number -> {
+            result.set(result.get() + number);
+        });
+        return result.get();
+    }
+
+    default long longSum(Function<T, Long> longFunction) {
+        AtomicReference<Long> result = new AtomicReference<>(0L);
+        map(longFunction).forEach(number -> {
+            result.set(result.get() + number);
+        });
+        return result.get();
+    }
 
 }
