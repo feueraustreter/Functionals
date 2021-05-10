@@ -1,7 +1,6 @@
 package feueraustreter.stream;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
@@ -29,6 +28,10 @@ public interface FunctionalStream<T> {
     default FunctionalStream<T> distinct() {
         Set<T> set = new HashSet<>();
         return filter(set::add);
+    }
+
+    default <K> FunctionalStream<K> unwrap(Function<T, Optional<K>> testFunction) {
+        return map(testFunction).filter(Optional::isPresent).map(Optional::get);
     }
 
     default <K> FunctionalStream<K> ofType(Class<K> type) {
@@ -84,35 +87,19 @@ public interface FunctionalStream<T> {
     <R, A> R collect(Collector<? super T, A, R> collector);
 
     default float floatSum(Function<T, Float> floatFunction) {
-        AtomicReference<Float> result = new AtomicReference<>(0.0F);
-        map(floatFunction).forEach(number -> {
-            result.set(result.get() + number);
-        });
-        return result.get();
+        return map(floatFunction).reduce(0.0F, Float::sum);
     }
 
     default int integerSum(Function<T, Integer> integerFunction) {
-        AtomicReference<Integer> result = new AtomicReference<>(0);
-        map(integerFunction).forEach(number -> {
-            result.set(result.get() + number);
-        });
-        return result.get();
+        return map(integerFunction).reduce(0, Integer::sum);
     }
 
     default double doubleSum(Function<T, Double> doubleFunction) {
-        AtomicReference<Double> result = new AtomicReference<>(0.0);
-        map(doubleFunction).forEach(number -> {
-            result.set(result.get() + number);
-        });
-        return result.get();
+        return map(doubleFunction).reduce(0.0D, Double::sum);
     }
 
     default long longSum(Function<T, Long> longFunction) {
-        AtomicReference<Long> result = new AtomicReference<>(0L);
-        map(longFunction).forEach(number -> {
-            result.set(result.get() + number);
-        });
-        return result.get();
+        return map(longFunction).reduce(0L, Long::sum);
     }
 
     Stream<T> toStream();

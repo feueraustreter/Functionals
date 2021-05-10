@@ -13,10 +13,11 @@ import java.util.stream.StreamSupport;
 
 public class FunctionalStreamImpl<T> implements FunctionalStream<T>, Iterable<T> {
 
-    private boolean shortCircuit = false;
-    private FunctionalStreamImpl<?> root;
-    private Sink<T> downstream = null;
+    private final FunctionalStreamImpl<?> root;
     private Iterator<T> streamSource = null;
+    private boolean shortCircuit = false;
+
+    private Sink<T> downstream = null;
 
     protected FunctionalStreamImpl(FunctionalStreamImpl<?> root) {
         this.root = root;
