@@ -1,5 +1,7 @@
 package feueraustreter.stream;
 
+import feueraustreter.tryfunction.Try;
+
 import java.util.*;
 import java.util.function.*;
 import java.util.stream.Collector;
@@ -145,6 +147,16 @@ public interface FunctionalStream<T> {
      * @return the new {@link FunctionalStream}
      */
     FunctionalStream<T> skip(long count);
+
+    /**
+     * @return a {@link Stream} of this {@link FunctionalStream}.
+     */
+    Stream<T> toStream();
+
+    // TODO: JavaDoc
+    default <K, E extends Throwable> FunctionalStream<K> tryIt(Function<T, Try<K, E>> tryFunction) {
+        return map(tryFunction).filter(Try::successful).map(Try::getSuccess);
+    }
 
     /**
      * Terminate this {@link FunctionalStream} and apply the
@@ -324,11 +336,6 @@ public interface FunctionalStream<T> {
     default long longSum(Function<T, Long> longFunction) {
         return map(longFunction).reduce(0L, Long::sum);
     }
-
-    /**
-     * @return a {@link Stream} of this {@link FunctionalStream}.
-     */
-    Stream<T> toStream();
 
     /**
      * Terminate this {@link FunctionalStream} and return an
