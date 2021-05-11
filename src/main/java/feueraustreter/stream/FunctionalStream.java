@@ -219,6 +219,22 @@ public interface FunctionalStream<T> {
     }
 
     /**
+     * Combine this {@link FunctionalStream} with another {@link FunctionalStream}
+     * and return one combined {@link FunctionalStream} containing every Element
+     * of both {@link FunctionalStream}. This operation is optional and can combine
+     * both {@link FunctionalStream} in any way, preferably this {@link FunctionalStream}
+     * before the other. If this {@link FunctionalStream} is empty the zip method
+     * must be evaluated and produce a {@link FunctionalStream} of the Elements of
+     * the inputted {@link FunctionalStream}.
+     *
+     * @param other the {@link FunctionalStream} to zip with
+     * @return the new {@link FunctionalStream}
+     */
+    default FunctionalStream<T> zip(FunctionalStream<T> other) {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
      * Terminate this {@link FunctionalStream} and apply the
      * given {@link Consumer} to every Element left in the
      * {@link FunctionalStream}.

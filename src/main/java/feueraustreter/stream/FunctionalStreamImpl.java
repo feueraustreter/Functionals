@@ -106,6 +106,38 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T>, Iterable<T>
     }
 
     @Override
+    public Iterator<T> iterator() {
+        AtomicReference<Optional<T>> atomicReference = new AtomicReference<>();
+        atomicReference.set(evalToNextOutput());
+        return new Iterator<T>() {
+            @Override
+            public boolean hasNext() {
+                return !root.shortCircuit && atomicReference.get().isPresent();
+            }
+
+            @Override
+            public T next() {
+                Optional<T> current = atomicReference.get();
+                atomicReference.set(evalToNextOutput());
+                return current.get();
+            }
+        };
+    }
+
+    @Override
+    public Stream<T> toStream() {
+        return StreamSupport.stream(spliterator(), false);
+    }
+
+    @Override
+    public FunctionalStream<T> zip(FunctionalStream<T> other) {
+        FunctionalStreamImpl<T> functionalStream = new FunctionalStreamImpl<>(root);
+        // TODO: Implement zipping of Streams
+        downstream = t -> functionalStream.downstream.accept(t);
+        return functionalStream;
+    }
+
+    @Override
     public void forEach(Consumer<? super T> consumer) {
         eval(consumer::accept);
     }
@@ -192,7 +224,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T>, Iterable<T>
 
     @Override
     public void close() {
-        shortCircuit = true;
+        root.shortCircuit = true;
     }
 
     @Override
@@ -245,8 +277,23 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T>, Iterable<T>
         return collector.finisher().apply(container);
     }
 
+    @Override
+    public T[] toArray(IntFunction<T[]> intFunction) {
+        List<T> list = toList();
+        return list.toArray(intFunction.apply(list.size()));
+    }
+
+    @Override
+    public T reduce(T identity, BinaryOperator<T> accumulator) {
+        AtomicReference<T> result = new AtomicReference<>(identity);
+        eval(t -> result.set(accumulator.apply(result.get(), t)));
+        return result.get();
+    }
+
     private void eval(Sink<T> sink) {
-        downstream = sink;
+        if (downstream == null) {
+            downstream = sink;
+        }
         root.evalAll();
     }
 
@@ -266,49 +313,12 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T>, Iterable<T>
     private Optional<T> evalToNextOutput() {
         AtomicReference<Optional<T>> atomicReference = new AtomicReference<>(Optional.empty());
         downstream = t -> atomicReference.set(Optional.of(t));
-        while (streamSource.hasNext() && !atomicReference.get().isPresent()) {
+        while (root.streamSource.hasNext() && !atomicReference.get().isPresent()) {
             root.evalNext();
-            if (shortCircuit) {
+            if (root.shortCircuit) {
                 return Optional.empty();
             }
         }
         return atomicReference.get();
-    }
-
-    @Override
-    public Iterator<T> iterator() {
-        AtomicReference<Optional<T>> atomicReference = new AtomicReference<>();
-        atomicReference.set(evalToNextOutput());
-        return new Iterator<T>() {
-            @Override
-            public boolean hasNext() {
-                return root.streamSource.hasNext() && !root.shortCircuit && atomicReference.get().isPresent();
-            }
-
-            @Override
-            public T next() {
-                Optional<T> current = atomicReference.get();
-                atomicReference.set(evalToNextOutput());
-                return current.get();
-            }
-        };
-    }
-
-    @Override
-    public Stream<T> toStream() {
-        return StreamSupport.stream(spliterator(), false);
-    }
-
-    @Override
-    public T[] toArray(IntFunction<T[]> intFunction) {
-        List<T> list = toList();
-        return list.toArray(intFunction.apply(list.size()));
-    }
-
-    @Override
-    public T reduce(T identity, BinaryOperator<T> accumulator) {
-        AtomicReference<T> result = new AtomicReference<>(identity);
-        eval(t -> result.set(accumulator.apply(result.get(), t)));
-        return result.get();
     }
 }
