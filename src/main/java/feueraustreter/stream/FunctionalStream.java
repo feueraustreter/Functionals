@@ -5,6 +5,7 @@ import feueraustreter.tryfunction.Try;
 import java.util.*;
 import java.util.function.*;
 import java.util.stream.Collector;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public interface FunctionalStream<T> {
@@ -29,6 +30,7 @@ public interface FunctionalStream<T> {
      * @param <K> the new type of the {@link FunctionalStream}
      * @param mapper the mapper {@link Function} to use
      * @return the new {@link FunctionalStream}
+     * @see Stream#map(Function) for more information regarding this method
      */
     <K> FunctionalStream<K> map(Function<? super T, K> mapper);
 
@@ -40,6 +42,7 @@ public interface FunctionalStream<T> {
      * @param <K> the new type of the {@link FunctionalStream}
      * @param mapper the mapper {@link Function} to use and get the {@link FunctionalStream} to get the data from
      * @return the new {@link FunctionalStream}
+     * @see Stream#flatMap(Function) for more information regarding this method
      */
     <K> FunctionalStream<K> flatMap(Function<? super T, FunctionalStream<K>> mapper);
 
@@ -49,6 +52,7 @@ public interface FunctionalStream<T> {
      *
      * @param filter the {@link Predicate} to use
      * @return the new {@link FunctionalStream}
+     * @see Stream#filter(Predicate) for more information regarding this method
      */
     FunctionalStream<T> filter(Predicate<? super T> filter);
 
@@ -59,6 +63,7 @@ public interface FunctionalStream<T> {
      * needs O(n) memory, where n is the size of the {@link FunctionalStream}.
      *
      * @return the new {@link FunctionalStream}
+     * @see Stream#distinct() for more information regarding this method
      */
     default FunctionalStream<T> distinct() {
         Set<T> set = new HashSet<>();
@@ -113,6 +118,7 @@ public interface FunctionalStream<T> {
      *
      * @param consumer the {@link Consumer} to call
      * @return the new {@link FunctionalStream}
+     * @see Stream#peek(Consumer) for more information regarding this method
      */
     FunctionalStream<T> peek(Consumer<? super T> consumer);
 
@@ -144,6 +150,7 @@ public interface FunctionalStream<T> {
      *
      * @param count the retaining count
      * @return the new {@link FunctionalStream}
+     * @see Stream#limit(long) for more information regarding this method
      */
     FunctionalStream<T> limit(long count);
 
@@ -153,6 +160,7 @@ public interface FunctionalStream<T> {
      *
      * @param count the skipping count
      * @return the new {@link FunctionalStream}
+     * @see Stream#skip(long) for more information regarding this method
      */
     FunctionalStream<T> skip(long count);
 
@@ -195,6 +203,7 @@ public interface FunctionalStream<T> {
      * {@link FunctionalStream}.
      *
      * @param consumer the {@link Consumer} to use
+     * @see Stream#forEach(Consumer) for more information regarding this method
      */
     void forEach(Consumer<? super T> consumer);
 
@@ -241,6 +250,7 @@ public interface FunctionalStream<T> {
      *
      * @param predicate the {@link Predicate} to use
      * @return if any Element matched the {@link Predicate}
+     * @see Stream#anyMatch(Predicate) for more information regarding this method
      */
     boolean anyMatch(Predicate<? super T> predicate);
 
@@ -253,6 +263,7 @@ public interface FunctionalStream<T> {
      *
      * @param predicate the {@link Predicate} to use
      * @return if every Element matched the {@link Predicate}
+     * @see Stream#allMatch(Predicate) for more information regarding this method
      */
     boolean allMatch(Predicate<? super T> predicate);
 
@@ -265,6 +276,7 @@ public interface FunctionalStream<T> {
      *
      * @param predicate the {@link Predicate} to use
      * @return if no Element matched the {@link Predicate}
+     * @see Stream#noneMatch(Predicate) for more information regarding this method
      */
     boolean noneMatch(Predicate<? super T> predicate);
 
@@ -274,6 +286,7 @@ public interface FunctionalStream<T> {
      * {@link FunctionalStream}.
      *
      * @return the Element count of this {@link FunctionalStream}
+     * @see Stream#count() for more information regarding this method
      */
     default long count() {
         return longSum(t -> 1L);
@@ -282,6 +295,7 @@ public interface FunctionalStream<T> {
     /**
      * Terminate this {@link FunctionalStream} without
      * evaluating anything.
+     * @see Stream#close() for more information regarding this method
      */
     void close();
 
@@ -292,6 +306,7 @@ public interface FunctionalStream<T> {
      * {@link Optional#empty()} gets returned.
      *
      * @return the first Element of this {@link FunctionalStream} or none.
+     * @see Stream#findFirst() for more information regarding this method
      */
     Optional<T> findFirst();
 
@@ -303,6 +318,7 @@ public interface FunctionalStream<T> {
      *
      * @param comparator the {@link Comparator} to compare the Elements
      * @return the smallest Element of this {@link FunctionalStream} or none.
+     * @see Stream#min(Comparator) for more information regarding this method
      */
     Optional<T> min(Comparator<T> comparator);
 
@@ -314,10 +330,23 @@ public interface FunctionalStream<T> {
      *
      * @param comparator the {@link Comparator} to compare the Elements
      * @return the biggest Element of this {@link FunctionalStream} or none.
+     * @see Stream#max(Comparator) for more information regarding this method
      */
     Optional<T> max(Comparator<T> comparator);
 
-    // TODO: JavaDoc
+    /**
+     * Terminate this {@link FunctionalStream} and collect it
+     * to a specific type by using a {@link Collector}. Some
+     * common {@link Collector}'s can be found in the
+     * {@link Collectors} class.
+     *
+     * @param <R> the type of the result
+     * @param <A> the intermediate accumulation type of the {@link Collector}
+     * @param collector the {@link Collector} describing the reduction
+     * @return the result of the reduction
+     * @see Collectors
+     * @see Stream#collect(Collector) for more information regarding this method
+     */
     <R, A> R collect(Collector<? super T, A, R> collector);
 
     /**
@@ -374,6 +403,7 @@ public interface FunctionalStream<T> {
      *
      * @param intFunction the array creation function
      * @return the array with every Element
+     * @see Stream#toArray(IntFunction) for more information regarding this method
      */
     T[] toArray(IntFunction<T[]> intFunction);
 
@@ -387,6 +417,7 @@ public interface FunctionalStream<T> {
      * @param identity the initial value
      * @param accumulator the accumulator to mutate the value
      * @return the single return Element
+     * @see Stream#reduce(Object, BinaryOperator) for more information regarding this method
      */
     T reduce(T identity, BinaryOperator<T> accumulator);
 
