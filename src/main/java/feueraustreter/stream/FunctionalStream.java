@@ -10,14 +10,35 @@ import java.util.stream.Stream;
 
 public interface FunctionalStream<T> {
 
+    /**
+     * Create a {@link FunctionalStream} of an existing {@link Iterable}.
+     *
+     * @param <K> the {@link FunctionalStream} type to use
+     * @param iterable the {@link Iterable} ElementSource
+     * @return the new {@link FunctionalStream}
+     */
     static <K> FunctionalStream<K> of(Iterable<K> iterable) {
         return new FunctionalStreamImpl<>(iterable.iterator());
     }
 
+    /**
+     * Create a {@link FunctionalStream} of an existing {@link Iterator}.
+     *
+     * @param <K> the {@link FunctionalStream} type to use
+     * @param iterator the {@link Iterator} ElementSource
+     * @return the new {@link FunctionalStream}
+     */
     static <K> FunctionalStream<K> of(Iterator<K> iterator) {
         return new FunctionalStreamImpl<>(iterator);
     }
 
+    /**
+     * Create a {@link FunctionalStream} of an existing {@link Stream}.
+     *
+     * @param <K> the {@link FunctionalStream} type to use
+     * @param stream the {@link Stream} ElementSource
+     * @return the new {@link FunctionalStream}
+     */
     static <K> FunctionalStream<K> of(Stream<K> stream) {
         return new FunctionalStreamImpl<>(stream.iterator());
     }
@@ -295,6 +316,7 @@ public interface FunctionalStream<T> {
     /**
      * Terminate this {@link FunctionalStream} without
      * evaluating anything.
+     *
      * @see Stream#close() for more information regarding this method
      */
     void close();
