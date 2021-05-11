@@ -1,4 +1,4 @@
-package feueraustreter.stream;
+package feueraustreter.lambda;
 
 @FunctionalInterface
 public interface ThrowableFunction<T, E extends Throwable, R> {

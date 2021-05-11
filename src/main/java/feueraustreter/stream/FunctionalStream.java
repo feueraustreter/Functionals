@@ -1,15 +1,21 @@
 package feueraustreter.stream;
 
+import feueraustreter.lambda.BiHigherOrderFunction;
+import feueraustreter.lambda.HigherOrderFunction;
+import feueraustreter.lambda.ThrowableFunction;
 import feueraustreter.tryfunction.Try;
 import lombok.NonNull;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public interface FunctionalStream<T> extends Iterable<T> {
+
+    // Creation methods
 
     /**
      * Create a {@link FunctionalStream} of an existing {@link Iterable}.
@@ -44,6 +50,8 @@ public interface FunctionalStream<T> extends Iterable<T> {
         return new FunctionalStreamImpl<>(stream.iterator());
     }
 
+    // Conversion methods
+
     /**
      * Convert this {@link FunctionalStream} of one type to another
      * by using the mapper {@link Function} provided. It will be applied
@@ -55,6 +63,29 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Stream#map(Function) for more information regarding this method
      */
     <K> FunctionalStream<K> map(Function<? super T, K> mapper);
+
+    // TODO: JavaDoc
+    default <K> FunctionalStream<K> higherOrderMap(HigherOrderFunction<T, K> higherOrderMapper) {
+        return map(t -> higherOrderMapper.apply(t).apply(t));
+    }
+
+    // TODO: JavaDoc
+    default <K> FunctionalStream<K> higherOrderMapWithPrevious(T identity, HigherOrderFunction<T, K> higherOrderMapper) {
+        AtomicReference<T> current = new AtomicReference<>(identity);
+        return map(t -> {
+            T toUse = current.getAndSet(t);
+            return higherOrderMapper.apply(toUse).apply(t);
+        });
+    }
+
+    // TODO: JavaDoc
+    default <K> FunctionalStream<K> higherOrderMapAndPrevious(T identity, BiHigherOrderFunction<T, K> higherOrderMapper) {
+        AtomicReference<T> current = new AtomicReference<>(identity);
+        return map(t -> {
+            T toUse = current.getAndSet(t);
+            return higherOrderMapper.apply(toUse, t).apply(t);
+        });
+    }
 
     /**
      * Convert a {@link FunctionalStream} of {@link FunctionalStream}
@@ -197,6 +228,14 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     FunctionalStream<T> skip(long count);
 
+    // TODO: JavaDoc
+    default FunctionalStream<T> keep(long from, long to) {
+        if (to < from) {
+            throw new IllegalArgumentException();
+        }
+        return skip(from).limit(to - from);
+    }
+
     /**
      * @return a {@link Stream} of this {@link FunctionalStream}.
      */
@@ -246,6 +285,8 @@ public interface FunctionalStream<T> extends Iterable<T> {
         throw new UnsupportedOperationException();
     }
 
+    // Terminating methods
+
     /**
      * Terminate this {@link FunctionalStream} and apply the
      * given {@link Consumer} to every Element left in the
@@ -285,8 +326,8 @@ public interface FunctionalStream<T> extends Iterable<T> {
     String joining(String delimiter);
 
     /**
-     * Terminate this {@link FunctionalStream} without
-     * any return value.
+     * Terminate and evaluate every statement of this {@link FunctionalStream}
+     * without any return value.
      */
     void eval();
 
@@ -471,12 +512,24 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     T reduce(T identity, BinaryOperator<T> accumulator);
 
+    // API for common use cases, like zip()
+
     /**
      * This is used as a common API for the implementation. Calling from outside should
      * not be done.
      *
      * @return if this stream has at least one Element left
      */
-    boolean hasNext();
+    default boolean hasNext() {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * This is used as a common API for the implementation. Calling from outside should
+     * not be done.
+     */
+    default void evalNext() {
+        throw new UnsupportedOperationException();
+    }
 
 }

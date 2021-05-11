@@ -15,13 +15,15 @@ public class Test {
         stringListEmpty.add("HUGO");
         stringListEmpty.add("Hello World10");
 
-        boolean t = FunctionalStream.of(stringListEmpty)
-                .zip(FunctionalStream.of(stringList).map(s -> "T" + s))
-                .toStream()
+        FunctionalStream.of(stringListEmpty)
+                .zip(FunctionalStream.of(stringList)
+                        .map(s -> "T" + s)
+                        .zip(FunctionalStream.of(stringList))
+                        .map(s -> "T" + s)
+                        .zip(FunctionalStream.of(stringListEmpty)))
                 .filter(s -> !s.equals("THello World"))
                 .peek(System.out::println)
-                .anyMatch(s -> s.startsWith("T"));
-        System.out.println(t);
+                .eval();
     }
 
 }

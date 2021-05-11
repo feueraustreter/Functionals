@@ -14,10 +14,10 @@ import java.util.stream.StreamSupport;
 public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     private final FunctionalStreamImpl<?> root;
-    private Iterator<T> streamSource = null;
     private boolean shortCircuit = false;
 
-    private Set<FunctionalStream<?>> zippedStreams = null;
+    private Iterator<T> streamSource = null;
+    private Set<FunctionalStream<?>> otherStreamSources = null;
 
     private Sink<T> downstream = null;
 
@@ -27,7 +27,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     public FunctionalStreamImpl(@NonNull Iterator<T> streamSource) {
         this.streamSource = streamSource;
-        this.zippedStreams = new HashSet<>();
+        this.otherStreamSources = new HashSet<>();
         this.root = this;
     }
 
@@ -150,8 +150,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         FunctionalStreamImpl<T> functionalStream = new FunctionalStreamImpl<>(root);
         downstream = t -> functionalStream.downstream.accept(t);
         other = other.peek(t -> functionalStream.downstream.accept(t));
-        other.close();
-        root.zippedStreams.add(other);
+        root.otherStreamSources.add(other);
         return functionalStream;
     }
 
@@ -196,6 +195,15 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     public void eval() {
         eval(t -> {
         });
+    }
+
+    @Override
+    public void evalNext() {
+        if (downstream == null) {
+            downstream = t -> {
+            };
+        }
+        root.evalNextInternal();
     }
 
     @Override
@@ -315,23 +323,26 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     }
 
     private void evalAll() {
+        if (shortCircuit) {
+            throw new UnsupportedOperationException("This Stream is already evaluated");
+        }
         while (hasNext()) {
-            evalNext();
+            evalNextInternal();
             if (shortCircuit) {
                 return;
             }
         }
     }
 
-    private void evalNext() {
+    private void evalNextInternal() {
         if (streamSource.hasNext()) {
             downstream.accept(streamSource.next());
             return;
         }
-        if (zippedStreams.stream().noneMatch(FunctionalStream::hasNext)) {
+        if (otherStreamSources.stream().noneMatch(FunctionalStream::hasNext)) {
             return;
         }
-        zippedStreams.stream().filter(FunctionalStream::hasNext).peek(FunctionalStream::eval).findFirst();
+        otherStreamSources.stream().filter(FunctionalStream::hasNext).peek(FunctionalStream::evalNext).findFirst();
     }
 
     private Optional<T> evalToNextOutput() {
@@ -340,7 +351,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         while (hasNext() && !atomicReference.get().isPresent()) {
             root.evalNext();
             if (root.shortCircuit) {
-                return Optional.empty();
+                break;
             }
         }
         return atomicReference.get();
@@ -348,6 +359,6 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     @Override
     public boolean hasNext() {
-        return root.streamSource.hasNext() || root.zippedStreams.stream().anyMatch(FunctionalStream::hasNext);
+        return root.streamSource.hasNext() || root.otherStreamSources.stream().anyMatch(FunctionalStream::hasNext);
     }
 }
