@@ -2,6 +2,8 @@ package feueraustreter.stream;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
+import java.util.function.Function;
 
 public class Test {
 
@@ -22,6 +24,9 @@ public class Test {
                         .map(s -> "T" + s)
                         .concat(FunctionalStream.of(stringListEmpty)))
                 .filter(s -> !s.equals("THello World"))
+                .higherOrderMapWithPrevious("0", s -> {
+                    return s1 -> s1.substring(new Random(s.length()).nextInt(s1.length()));
+                })
                 .peek(System.out::println)
                 .eval();
     }
