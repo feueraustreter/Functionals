@@ -1,6 +1,7 @@
 package feueraustreter.stream;
 
 import feueraustreter.tryfunction.Try;
+import lombok.NonNull;
 
 import java.util.*;
 import java.util.function.*;
@@ -127,7 +128,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @param type the {@link Class} type to retain in the {@link FunctionalStream}
      * @return the new {@link FunctionalStream}
      */
-    default <K> FunctionalStream<K> ofType(Class<K> type) {
+    default <K> FunctionalStream<K> ofType(@NonNull Class<K> type) {
         return filter(Objects::nonNull).filter(t -> type.isAssignableFrom(t.getClass())).map(type::cast);
     }
 
@@ -469,5 +470,13 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Stream#reduce(Object, BinaryOperator) for more information regarding this method
      */
     T reduce(T identity, BinaryOperator<T> accumulator);
+
+    /**
+     * This is used as a common API for the implementation. Calling from outside should
+     * not be done.
+     *
+     * @return if this stream has at least one Element left
+     */
+    boolean hasNext();
 
 }

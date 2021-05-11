@@ -17,6 +17,8 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     private Iterator<T> streamSource = null;
     private boolean shortCircuit = false;
 
+    private Set<FunctionalStream<?>> zippedStreams = null;
+
     private Sink<T> downstream = null;
 
     protected FunctionalStreamImpl(FunctionalStreamImpl<?> root) {
@@ -25,6 +27,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     public FunctionalStreamImpl(@NonNull Iterator<T> streamSource) {
         this.streamSource = streamSource;
+        this.zippedStreams = new HashSet<>();
         this.root = this;
     }
 
@@ -145,8 +148,10 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     @Override
     public FunctionalStream<T> zip(FunctionalStream<T> other) {
         FunctionalStreamImpl<T> functionalStream = new FunctionalStreamImpl<>(root);
-        // TODO: Implement zipping of Streams
         downstream = t -> functionalStream.downstream.accept(t);
+        other = other.peek(t -> functionalStream.downstream.accept(t));
+        other.close();
+        root.zippedStreams.add(other);
         return functionalStream;
     }
 
@@ -310,7 +315,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     }
 
     private void evalAll() {
-        while (streamSource.hasNext()) {
+        while (hasNext()) {
             evalNext();
             if (shortCircuit) {
                 return;
@@ -319,18 +324,30 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     }
 
     private void evalNext() {
-        downstream.accept(streamSource.next());
+        if (streamSource.hasNext()) {
+            downstream.accept(streamSource.next());
+            return;
+        }
+        if (zippedStreams.stream().noneMatch(FunctionalStream::hasNext)) {
+            return;
+        }
+        zippedStreams.stream().filter(FunctionalStream::hasNext).peek(FunctionalStream::eval).findFirst();
     }
 
     private Optional<T> evalToNextOutput() {
         AtomicReference<Optional<T>> atomicReference = new AtomicReference<>(Optional.empty());
         downstream = t -> atomicReference.set(Optional.of(t));
-        while (root.streamSource.hasNext() && !atomicReference.get().isPresent()) {
+        while (hasNext() && !atomicReference.get().isPresent()) {
             root.evalNext();
             if (root.shortCircuit) {
                 return Optional.empty();
             }
         }
         return atomicReference.get();
+    }
+
+    @Override
+    public boolean hasNext() {
+        return root.streamSource.hasNext() || root.zippedStreams.stream().anyMatch(FunctionalStream::hasNext);
     }
 }
