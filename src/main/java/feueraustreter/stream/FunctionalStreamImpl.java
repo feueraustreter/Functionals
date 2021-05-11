@@ -263,20 +263,33 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T>, Iterable<T>
         downstream.accept(streamSource.next());
     }
 
+    private Optional<T> evalToNextOutput() {
+        AtomicReference<Optional<T>> atomicReference = new AtomicReference<>();
+        downstream = t -> atomicReference.set(Optional.of(t));
+        while (streamSource.hasNext() && !atomicReference.get().isPresent()) {
+            root.evalNext();
+            if (shortCircuit) {
+                return Optional.empty();
+            }
+        }
+        return atomicReference.get();
+    }
+
     @Override
     public Iterator<T> iterator() {
-        AtomicReference<T> atomicReference = new AtomicReference<>();
-        downstream = atomicReference::set;
+        AtomicReference<Optional<T>> atomicReference = new AtomicReference<>();
+        atomicReference.set(evalToNextOutput());
         return new Iterator<T>() {
             @Override
             public boolean hasNext() {
-                return root.streamSource.hasNext() && !root.shortCircuit;
+                return root.streamSource.hasNext() && !root.shortCircuit && atomicReference.get().isPresent();
             }
 
             @Override
             public T next() {
-                root.evalNext();
-                return atomicReference.get();
+                Optional<T> current = atomicReference.get();
+                atomicReference.set(evalToNextOutput());
+                return current.get();
             }
         };
     }
