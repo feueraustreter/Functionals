@@ -7,6 +7,8 @@ import feueraustreter.tryfunction.Try;
 import lombok.NonNull;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
 import java.util.stream.Collector;
@@ -108,7 +110,15 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @param mapper thw mapper {@link Function} to use
      * @return the new {@link FunctionalStream}
      */
-    FunctionalStream<T> partialMap(Predicate<? super T> filter, UnaryOperator<T> mapper);
+    default FunctionalStream<T> partialMap(Predicate<? super T> filter, UnaryOperator<T> mapper) {
+        return map(t -> {
+            if (filter.test(t)) {
+                return mapper.apply(t);
+            } else {
+                return t;
+            }
+        });
+    }
 
     /**
      * Retain anything in this {@link FunctionalStream} that matched
@@ -216,7 +226,10 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return the new {@link FunctionalStream}
      * @see Stream#limit(long) for more information regarding this method
      */
-    FunctionalStream<T> limit(long count);
+    default FunctionalStream<T> limit(long count) {
+        AtomicLong current = new AtomicLong(0L);
+        return filter(t -> current.getAndIncrement() < count);
+    }
 
     /**
      * Skip n Elements of this {@link FunctionalStream} and retain
@@ -226,7 +239,10 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return the new {@link FunctionalStream}
      * @see Stream#skip(long) for more information regarding this method
      */
-    FunctionalStream<T> skip(long count);
+    default FunctionalStream<T> skip(long count) {
+        AtomicLong current = new AtomicLong(0L);
+        return filter(t -> current.getAndIncrement() >= count);
+    }
 
     // TODO: JavaDoc
     default FunctionalStream<T> keep(long from, long to) {
@@ -304,7 +320,9 @@ public interface FunctionalStream<T> extends Iterable<T> {
      *
      * @return the {@link List} of Elements
      */
-    List<T> toList();
+    default List<T> toList() {
+        return collect(Collectors.toList());
+    }
 
     /**
      * Terminate this {@link FunctionalStream} and collect
@@ -313,7 +331,9 @@ public interface FunctionalStream<T> extends Iterable<T> {
      *
      * @return the {@link Set} of Elements
      */
-    Set<T> toSet();
+    default Set<T> toSet() {
+        return collect(Collectors.toSet());
+    }
 
     /**
      * Terminate this {@link FunctionalStream} and collect
@@ -323,13 +343,18 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @param delimiter the delimiter to use
      * @return the {@link String} of every Element joined by the delimiter
      */
-    String joining(String delimiter);
+    default String joining(String delimiter) {
+        return map(Objects::toString).collect(Collectors.joining(delimiter));
+    }
 
     /**
      * Terminate and evaluate every statement of this {@link FunctionalStream}
      * without any return value.
      */
-    void eval();
+    default void eval() {
+        forEach(t -> {
+        });
+    }
 
     /**
      * Terminate this {@link FunctionalStream} and
@@ -411,7 +436,20 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return the smallest Element of this {@link FunctionalStream} or none.
      * @see Stream#min(Comparator) for more information regarding this method
      */
-    Optional<T> min(Comparator<T> comparator);
+    default Optional<T> min(Comparator<T> comparator) {
+        AtomicReference<Optional<T>> result = new AtomicReference<>(Optional.empty());
+        forEach(t -> {
+            Optional<T> current = result.get();
+            if (!current.isPresent()) {
+                result.set(Optional.of(t));
+                return;
+            }
+            if (comparator.compare(current.get(), t) > 0) {
+                result.set(Optional.of(t));
+            }
+        });
+        return result.get();
+    }
 
     /**
      * Terminate this {@link FunctionalStream} and return
@@ -423,7 +461,20 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return the biggest Element of this {@link FunctionalStream} or none.
      * @see Stream#max(Comparator) for more information regarding this method
      */
-    Optional<T> max(Comparator<T> comparator);
+    default Optional<T> max(Comparator<T> comparator) {
+        AtomicReference<Optional<T>> result = new AtomicReference<>(Optional.empty());
+        forEach(t -> {
+            Optional<T> current = result.get();
+            if (!current.isPresent()) {
+                result.set(Optional.of(t));
+                return;
+            }
+            if (comparator.compare(current.get(), t) < 0) {
+                result.set(Optional.of(t));
+            }
+        });
+        return result.get();
+    }
 
     /**
      * Terminate this {@link FunctionalStream} and collect it
@@ -438,7 +489,12 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Collectors
      * @see Stream#collect(Collector) for more information regarding this method
      */
-    <R, A> R collect(Collector<? super T, A, R> collector);
+    default <R, A> R collect(Collector<? super T, A, R> collector) {
+        A container = collector.supplier().get();
+        BiConsumer<A, ? super T> biConsumer = collector.accumulator();
+        forEach(t -> biConsumer.accept(container, t));
+        return collector.finisher().apply(container);
+    }
 
     /**
      * Terminate and reduce this {@link FunctionalStream} to
@@ -496,7 +552,10 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return the array with every Element
      * @see Stream#toArray(IntFunction) for more information regarding this method
      */
-    T[] toArray(IntFunction<T[]> intFunction);
+    default T[] toArray(IntFunction<T[]> intFunction) {
+        List<T> list = toList();
+        return list.toArray(intFunction.apply(list.size()));
+    }
 
     /**
      * Terminate this {@link FunctionalStream} and return
@@ -510,7 +569,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return the single return Element
      * @see Stream#reduce(Object, BinaryOperator) for more information regarding this method
      */
-    T reduce(T identity, BinaryOperator<T> accumulator);
+    default T reduce(T identity, BinaryOperator<T> accumulator) {
+        AtomicReference<T> result = new AtomicReference<>(identity);
+        forEach(t -> result.set(accumulator.apply(result.get(), t)));
+        return result.get();
+    }
 
     // API for common use cases, like zip()
 
