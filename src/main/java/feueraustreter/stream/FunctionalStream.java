@@ -8,7 +8,7 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public interface FunctionalStream<T> {
+public interface FunctionalStream<T> extends Iterable<T> {
 
     /**
      * Create a {@link FunctionalStream} of an existing {@link Iterable}.
@@ -66,6 +66,17 @@ public interface FunctionalStream<T> {
      * @see Stream#flatMap(Function) for more information regarding this method
      */
     <K> FunctionalStream<K> flatMap(Function<? super T, FunctionalStream<K>> mapper);
+
+    /**
+     * Convert some Elements of this {@link FunctionalStream} to new
+     * Elements of the same type. Retains every element not matching
+     * the 'filter' and applies something to those that match.
+     *
+     * @param filter the {@link Predicate} to use
+     * @param mapper thw mapper {@link Function} to use
+     * @return the new {@link FunctionalStream}
+     */
+    FunctionalStream<T> partialMap(Predicate<? super T> filter, UnaryOperator<T> mapper);
 
     /**
      * Retain anything in this {@link FunctionalStream} that matched

@@ -11,7 +11,7 @@ import java.util.stream.Collector;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-public class FunctionalStreamImpl<T> implements FunctionalStream<T>, Iterable<T> {
+public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     private final FunctionalStreamImpl<?> root;
     private Iterator<T> streamSource = null;
@@ -46,6 +46,19 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T>, Iterable<T>
                     current.close();
                 }
             });
+        };
+        return functionalStream;
+    }
+
+    @Override
+    public FunctionalStream<T> partialMap(Predicate<? super T> filter, UnaryOperator<T> mapper) {
+        FunctionalStreamImpl<T> functionalStream = new FunctionalStreamImpl<>(root);
+        downstream = t -> {
+            if (filter.test(t)) {
+                functionalStream.downstream.accept(mapper.apply(t));
+            } else {
+                functionalStream.downstream.accept(t);
+            }
         };
         return functionalStream;
     }
@@ -176,7 +189,8 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T>, Iterable<T>
 
     @Override
     public void eval() {
-        eval(t -> {});
+        eval(t -> {
+        });
     }
 
     @Override
@@ -291,9 +305,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T>, Iterable<T>
     }
 
     private void eval(Sink<T> sink) {
-        if (downstream == null) {
-            downstream = sink;
-        }
+        downstream = sink;
         root.evalAll();
     }
 

@@ -22,6 +22,11 @@ public class Test {
                 .map(String::new)
                 .anyMatch(s -> s.startsWith("T"));
         System.out.println(t);
+
+        for (String s : FunctionalStream.of(stringList)
+                .map(h -> h + " " + h)) {
+            System.out.println(s);
+        }
     }
 
 }
