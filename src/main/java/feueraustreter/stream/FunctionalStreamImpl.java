@@ -146,7 +146,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     }
 
     @Override
-    public FunctionalStream<T> zip(FunctionalStream<T> other) {
+    public FunctionalStream<T> concat(FunctionalStream<T> other) {
         FunctionalStreamImpl<T> functionalStream = new FunctionalStreamImpl<>(root);
         downstream = t -> functionalStream.downstream.accept(t);
         other = other.peek(t -> functionalStream.downstream.accept(t));

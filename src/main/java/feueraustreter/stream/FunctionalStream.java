@@ -281,7 +281,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @param other the {@link FunctionalStream} to zip with
      * @return the new {@link FunctionalStream}
      */
-    default FunctionalStream<T> zip(FunctionalStream<T> other) {
+    default FunctionalStream<T> concat(FunctionalStream<T> other) {
         throw new UnsupportedOperationException();
     }
 

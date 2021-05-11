@@ -16,11 +16,11 @@ public class Test {
         stringListEmpty.add("Hello World10");
 
         FunctionalStream.of(stringListEmpty)
-                .zip(FunctionalStream.of(stringList)
+                .concat(FunctionalStream.of(stringList)
                         .map(s -> "T" + s)
-                        .zip(FunctionalStream.of(stringList))
+                        .concat(FunctionalStream.of(stringList))
                         .map(s -> "T" + s)
-                        .zip(FunctionalStream.of(stringListEmpty)))
+                        .concat(FunctionalStream.of(stringListEmpty)))
                 .filter(s -> !s.equals("THello World"))
                 .peek(System.out::println)
                 .eval();
