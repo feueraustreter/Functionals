@@ -264,7 +264,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T>, Iterable<T>
     }
 
     private Optional<T> evalToNextOutput() {
-        AtomicReference<Optional<T>> atomicReference = new AtomicReference<>();
+        AtomicReference<Optional<T>> atomicReference = new AtomicReference<>(Optional.empty());
         downstream = t -> atomicReference.set(Optional.of(t));
         while (streamSource.hasNext() && !atomicReference.get().isPresent()) {
             root.evalNext();

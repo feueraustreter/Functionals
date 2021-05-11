@@ -94,7 +94,15 @@ public interface FunctionalStream<T> {
         return filter(Objects::nonNull).filter(t -> type.isAssignableFrom(t.getClass())).map(type::cast);
     }
 
-    // TODO: JavaDoc
+    /**
+     * Apply some kind of mapping to this {@link FunctionalStream} outside
+     * this caller. It can be used by an API to template a specific mapping
+     * and provide it as an method to use by the user.
+     *
+     * @param <K> the new type of the {@link FunctionalStream}
+     * @param tappingFunction the {@link Function} to convert from old to new {@link FunctionalStream}
+     * @return the new {@link FunctionalStream}
+     */
     default <K> FunctionalStream<K> tap(Function<FunctionalStream<T>, FunctionalStream<K>> tappingFunction) {
         return tappingFunction.apply(this);
     }
@@ -153,9 +161,32 @@ public interface FunctionalStream<T> {
      */
     Stream<T> toStream();
 
-    // TODO: JavaDoc
+    /**
+     * Map any Element of this {@link FunctionalStream} by some {@link Function}
+     * and ignore if any {@link Throwable} gets thrown. It will retain
+     * every Element, that mapped without an {@link Exception}.
+     *
+     * @param <K> the new type of the {@link FunctionalStream}
+     * @param <E> the {@link Throwable} type of the applied {@link Function}
+     * @param tryFunction the Function to apply.
+     * @return the new {@link FunctionalStream}
+     */
     default <K, E extends Throwable> FunctionalStream<K> tryIt(Function<T, Try<K, E>> tryFunction) {
         return map(tryFunction).filter(Try::successful).map(Try::getSuccess);
+    }
+
+    /**
+     * Map any Element of this {@link FunctionalStream} by some {@link Function}
+     * and ignore if any {@link Throwable} gets thrown. It will retain
+     * every Element, that mapped without an {@link Exception}.
+     *
+     * @param <K> the new type of the {@link FunctionalStream}
+     * @param <E> the {@link Throwable} type of the applied {@link Function}
+     * @param tryFunction the Function to apply.
+     * @return the new {@link FunctionalStream}
+     */
+    default <K, E extends Throwable> FunctionalStream<K> tryIt(ThrowableFunction<T, E, K> tryFunction) {
+        return map(t -> Try.tryIt(() -> tryFunction.apply(t))).filter(Try::successful).map(Try::getSuccess);
     }
 
     /**
