@@ -7,7 +7,6 @@ import feueraustreter.tryfunction.Try;
 import lombok.NonNull;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
@@ -102,8 +101,8 @@ public interface FunctionalStream<T> extends Iterable<T> {
     <K> FunctionalStream<K> flatMap(Function<? super T, FunctionalStream<K>> mapper);
 
     /**
-     * Convert some Elements of this {@link FunctionalStream} to new
-     * Elements of the same type. Retains every element not matching
+     * Convert some elements of this {@link FunctionalStream} to new
+     * elements of the same type. Retains every element not matching
      * the 'filter' and applies something to those that match.
      *
      * @param filter the {@link Predicate} to use
@@ -122,7 +121,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     /**
      * Retain anything in this {@link FunctionalStream} that matched
-     * the given {@link Predicate}. Drops every Element not matching it.
+     * the given {@link Predicate}. Drops every element not matching it.
      *
      * @param filter the {@link Predicate} to use
      * @return the new {@link FunctionalStream}
@@ -131,13 +130,51 @@ public interface FunctionalStream<T> extends Iterable<T> {
     FunctionalStream<T> filter(Predicate<? super T> filter);
 
     /**
+     * Remove anything in this {@link FunctionalStream} that matched
+     * the given {@link Predicate}. Drops every element matching it.
+     *
+     * @param filter the {@link Predicate} to use
+     * @return the new {@link FunctionalStream}
+     * @see Stream#filter(Predicate) for more information regarding this method
+     * @see #filter(Predicate) for more information regarding this method
+     */
+    default FunctionalStream<T> removeAll(Predicate<? super T> filter) {
+        return filter(t -> !filter.test(t));
+    }
+
+    /**
+     * Retain anything in this {@link FunctionalStream} that matched
+     * the given {@link Predicate}. Drops every element not matching it.
+     *
+     * @param filter the {@link Predicate} to use
+     * @return the new {@link FunctionalStream}
+     * @see Stream#filter(Predicate) for more information regarding this method
+     * @see #filter(Predicate) for more information regarding this method
+     */
+    default FunctionalStream<T> retainAll(Predicate<? super T> filter) {
+        return filter(filter);
+    }
+
+    /**
+     * Remove any element that is null.
+     *
+     * @return the new {@link FunctionalStream}
+     * @see Stream#filter(Predicate) for more information regarding this method
+     * @see #filter(Predicate) for more information regarding this method
+     */
+    default FunctionalStream<T> removeNull() {
+        return filter(Objects::nonNull);
+    }
+
+    /**
      * Retain every unique element of this {@link FunctionalStream}.
-     * It uses a {@link HashSet} to check if the current Element at
+     * It uses a {@link HashSet} to check if the current element at
      * hand was already seen or not. Therefore this implementation
      * needs O(n) memory, where n is the size of the {@link FunctionalStream}.
      *
      * @return the new {@link FunctionalStream}
      * @see Stream#distinct() for more information regarding this method
+     * @see #filter(Predicate) for more information regarding this method
      */
     default FunctionalStream<T> distinct() {
         Set<T> set = new HashSet<>();
@@ -148,7 +185,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * Unwrap a value that can be an {@link Optional} to the containing
      * value by filtering on {@link Optional#isPresent()} and than
      * calling {@link Optional#get()}. To get the {@link Optional} in
-     * the first place on every Element of this {@link FunctionalStream}
+     * the first place on every element of this {@link FunctionalStream}
      * the so called 'testFunction' {@link Function} gets applied. This
      * {@link Function} return an {@link Optional} that is then unwrapped
      * by the successive calls.
@@ -162,7 +199,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     /**
-     * Retain any Element in this {@link FunctionalStream} that is not
+     * Retain any element in this {@link FunctionalStream} that is not
      * {@code null} and of type 'type'.
      *
      * @param <K> the new type of the {@link FunctionalStream}
@@ -188,7 +225,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     /**
      * This can be used to debug the {@link FunctionalStream} or
-     * call one specific thing on every Element of the {@link FunctionalStream}.
+     * call one specific thing on every element of the {@link FunctionalStream}.
      *
      * @param consumer the {@link Consumer} to call
      * @return the new {@link FunctionalStream}
@@ -200,7 +237,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * This can be used to debug the {@link FunctionalStream} and get
      * every element in a {@link List}.
      *
-     * @param list the {@link List} to put every Element into
+     * @param list the {@link List} to put every element into
      * @return the new {@link FunctionalStream}
      */
     default FunctionalStream<T> peekResult(List<T> list) {
@@ -211,7 +248,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * This can be used to debug the {@link FunctionalStream} and get
      * every element in a {@link Set}.
      *
-     * @param set the {@link Set} to put every Element into
+     * @param set the {@link Set} to put every element into
      * @return the new {@link FunctionalStream}
      */
     default FunctionalStream<T> peekResult(Set<T> set) {
@@ -219,7 +256,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     /**
-     * Limit this {@link FunctionalStream} to n Elements and retain
+     * Limit this {@link FunctionalStream} to n elements and retain
      * only those.
      *
      * @param count the retaining count
@@ -232,8 +269,8 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     /**
-     * Skip n Elements of this {@link FunctionalStream} and retain
-     * any after the skipped Elements.
+     * Skip n elements of this {@link FunctionalStream} and retain
+     * any after the skipped elements.
      *
      * @param count the skipping count
      * @return the new {@link FunctionalStream}
@@ -244,10 +281,18 @@ public interface FunctionalStream<T> extends Iterable<T> {
         return filter(t -> current.getAndIncrement() >= count);
     }
 
-    // TODO: JavaDoc
+    /**
+     * Keep a portion of this {@link FunctionalStream} by skipping
+     * n elements and retaining n elements afterwards. This can be
+     * used to implement paging.
+     *
+     * @param from which element should be the first in the {@link FunctionalStream}
+     * @param to which element should be the last in the {@link FunctionalStream}
+     * @return the new {@link FunctionalStream}
+     */
     default FunctionalStream<T> keep(long from, long to) {
         if (to < from) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("From is Smaller than to");
         }
         return skip(from).limit(to - from);
     }
@@ -258,9 +303,9 @@ public interface FunctionalStream<T> extends Iterable<T> {
     Stream<T> toStream();
 
     /**
-     * Map any Element of this {@link FunctionalStream} by some {@link Function}
+     * Map any element of this {@link FunctionalStream} by some {@link Function}
      * and ignore if any {@link Throwable} gets thrown. It will retain
-     * every Element, that mapped without an {@link Exception}.
+     * every element, that mapped without an {@link Exception}.
      *
      * @param <K> the new type of the {@link FunctionalStream}
      * @param <E> the {@link Throwable} type of the applied {@link Function}
@@ -272,9 +317,9 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     /**
-     * Map any Element of this {@link FunctionalStream} by some {@link Function}
+     * Map any element of this {@link FunctionalStream} by some {@link Function}
      * and ignore if any {@link Throwable} gets thrown. It will retain
-     * every Element, that mapped without an {@link Exception}.
+     * every element, that mapped without an {@link Exception}.
      *
      * @param <K> the new type of the {@link FunctionalStream}
      * @param <E> the {@link Throwable} type of the applied {@link Function}
@@ -287,11 +332,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     /**
      * Combine this {@link FunctionalStream} with another {@link FunctionalStream}
-     * and return one combined {@link FunctionalStream} containing every Element
+     * and return one combined {@link FunctionalStream} containing every element
      * of both {@link FunctionalStream}. This operation is optional and can combine
      * both {@link FunctionalStream} in any way, preferably this {@link FunctionalStream}
      * before the other. If this {@link FunctionalStream} is empty the zip method
-     * must be evaluated and produce a {@link FunctionalStream} of the Elements of
+     * must be evaluated and produce a {@link FunctionalStream} of the elements of
      * the inputted {@link FunctionalStream}.
      *
      * @param other the {@link FunctionalStream} to zip with
@@ -305,7 +350,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     /**
      * Terminate this {@link FunctionalStream} and apply the
-     * given {@link Consumer} to every Element left in the
+     * given {@link Consumer} to every element left in the
      * {@link FunctionalStream}.
      *
      * @param consumer the {@link Consumer} to use
@@ -315,10 +360,10 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     /**
      * Terminate this {@link FunctionalStream} and collect
-     * every Element left in this {@link FunctionalStream}
+     * every element left in this {@link FunctionalStream}
      * into a {@link List}.
      *
-     * @return the {@link List} of Elements
+     * @return the {@link List} of elements
      */
     default List<T> toList() {
         return collect(Collectors.toList());
@@ -326,10 +371,10 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     /**
      * Terminate this {@link FunctionalStream} and collect
-     * every Element left in this {@link FunctionalStream}
+     * every element left in this {@link FunctionalStream}
      * into a {@link Set}.
      *
-     * @return the {@link Set} of Elements
+     * @return the {@link Set} of elements
      */
     default Set<T> toSet() {
         return collect(Collectors.toSet());
@@ -337,11 +382,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     /**
      * Terminate this {@link FunctionalStream} and collect
-     * every Element left in this {@link FunctionalStream}
+     * every element left in this {@link FunctionalStream}
      * into a {@link String} with a specific delimiter.
      *
      * @param delimiter the delimiter to use
-     * @return the {@link String} of every Element joined by the delimiter
+     * @return the {@link String} of every element joined by the delimiter
      */
     default String joining(String delimiter) {
         return map(Objects::toString).collect(Collectors.joining(delimiter));
@@ -358,49 +403,49 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     /**
      * Terminate this {@link FunctionalStream} and
-     * check if one Element can be found that qualifies to
+     * check if one element can be found that qualifies to
      * the {@link Predicate} given. The {@link Predicate}
-     * does not need to be evaluated on every Element to
+     * does not need to be evaluated on every element to
      * determine the output of this call.
      *
      * @param predicate the {@link Predicate} to use
-     * @return if any Element matched the {@link Predicate}
+     * @return if any element matched the {@link Predicate}
      * @see Stream#anyMatch(Predicate) for more information regarding this method
      */
     boolean anyMatch(Predicate<? super T> predicate);
 
     /**
      * Terminate this {@link FunctionalStream} and
-     * check if every Element qualifies to the
+     * check if every element qualifies to the
      * {@link Predicate} given. The {@link Predicate}
-     * does not need to be evaluated on every Element
+     * does not need to be evaluated on every element
      * to determine the output of this call.
      *
      * @param predicate the {@link Predicate} to use
-     * @return if every Element matched the {@link Predicate}
+     * @return if every element matched the {@link Predicate}
      * @see Stream#allMatch(Predicate) for more information regarding this method
      */
     boolean allMatch(Predicate<? super T> predicate);
 
     /**
      * Terminate this {@link FunctionalStream} and
-     * check if no Element qualified to the
+     * check if no element qualified to the
      * {@link Predicate} given. The {@link Predicate}
-     * does not need to be evaluated on every Element
+     * does not need to be evaluated on every element
      * to determine the output of this call.
      *
      * @param predicate the {@link Predicate} to use
-     * @return if no Element matched the {@link Predicate}
+     * @return if no element matched the {@link Predicate}
      * @see Stream#noneMatch(Predicate) for more information regarding this method
      */
     boolean noneMatch(Predicate<? super T> predicate);
 
     /**
      * Terminate this {@link FunctionalStream} and
-     * count the Elements left in this
+     * count the elements left in this
      * {@link FunctionalStream}.
      *
-     * @return the Element count of this {@link FunctionalStream}
+     * @return the element count of this {@link FunctionalStream}
      * @see Stream#count() for more information regarding this method
      */
     default long count() {
@@ -417,23 +462,38 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     /**
      * Terminate this {@link FunctionalStream} and return
-     * the first Element in this {@link FunctionalStream}.
+     * the first element in this {@link FunctionalStream}.
      * If this {@link FunctionalStream} is empty
      * {@link Optional#empty()} gets returned.
      *
-     * @return the first Element of this {@link FunctionalStream} or none.
+     * @return the first element of this {@link FunctionalStream} or none.
      * @see Stream#findFirst() for more information regarding this method
      */
     Optional<T> findFirst();
 
     /**
      * Terminate this {@link FunctionalStream} and return
-     * the smallest Element determined by the {@link Comparator}
+     * the first element in this {@link FunctionalStream}
+     * that is also matich the given {@link Predicate}.
+     * If this {@link FunctionalStream} is empty
+     * {@link Optional#empty()} gets returned.
+     *
+     * @param predicate the {@link Predicate} to test with
+     * @return the first element of this {@link FunctionalStream} or none.
+     * @see Stream#findFirst() for more information regarding this method
+     */
+    default Optional<T> findFirst(Predicate<T> predicate) {
+        return filter(predicate).findFirst();
+    }
+
+    /**
+     * Terminate this {@link FunctionalStream} and return
+     * the smallest element determined by the {@link Comparator}
      * given. If this {@link FunctionalStream} is empty
      * {@link Optional#empty()} gets returned.
      *
-     * @param comparator the {@link Comparator} to compare the Elements
-     * @return the smallest Element of this {@link FunctionalStream} or none.
+     * @param comparator the {@link Comparator} to compare the elements
+     * @return the smallest element of this {@link FunctionalStream} or none.
      * @see Stream#min(Comparator) for more information regarding this method
      */
     default Optional<T> min(Comparator<T> comparator) {
@@ -453,12 +513,12 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     /**
      * Terminate this {@link FunctionalStream} and return
-     * the biggest Element determined by the {@link Comparator}
+     * the biggest element determined by the {@link Comparator}
      * given. If this {@link FunctionalStream} is empty
      * {@link Optional#empty()} gets returned.
      *
-     * @param comparator the {@link Comparator} to compare the Elements
-     * @return the biggest Element of this {@link FunctionalStream} or none.
+     * @param comparator the {@link Comparator} to compare the elements
+     * @return the biggest element of this {@link FunctionalStream} or none.
      * @see Stream#max(Comparator) for more information regarding this method
      */
     default Optional<T> max(Comparator<T> comparator) {
@@ -499,7 +559,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
     /**
      * Terminate and reduce this {@link FunctionalStream} to
      * a {@link Float}. The {@link Function} will map every
-     * Element to type {@link Float}.
+     * element to type {@link Float}.
      *
      * @param floatFunction the {@link Function} to produce the {@link Float}'s
      * @return the sum of every {@link Float}
@@ -511,7 +571,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
     /**
      * Terminate and reduce this {@link FunctionalStream} to
      * a {@link Integer}. The {@link Function} will map every
-     * Element to type {@link Integer}.
+     * element to type {@link Integer}.
      *
      * @param integerFunction the {@link Function} to produce the {@link Integer}'s
      * @return the sum of every {@link Integer}
@@ -523,7 +583,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
     /**
      * Terminate and reduce this {@link FunctionalStream} to
      * a {@link Double}. The {@link Function} will map every
-     * Element to type {@link Double}.
+     * element to type {@link Double}.
      *
      * @param doubleFunction the {@link Function} to produce the {@link Double}'s
      * @return the sum of every {@link Double}
@@ -535,7 +595,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
     /**
      * Terminate and reduce this {@link FunctionalStream} to
      * a {@link Long}. The {@link Function} will map every
-     * Element to type {@link Long}.
+     * element to type {@link Long}.
      *
      * @param longFunction the {@link Function} to produce the {@link Long}'s
      * @return the sum of every {@link Long}
@@ -546,10 +606,10 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     /**
      * Terminate this {@link FunctionalStream} and return an
-     * array of Elements of the {@link FunctionalStream}.
+     * array of elements of the {@link FunctionalStream}.
      *
      * @param intFunction the array creation function
-     * @return the array with every Element
+     * @return the array with every element
      * @see Stream#toArray(IntFunction) for more information regarding this method
      */
     default T[] toArray(IntFunction<T[]> intFunction) {
@@ -559,14 +619,14 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     /**
      * Terminate this {@link FunctionalStream} and return
-     * a single return Element determined by a given
+     * a single return element determined by a given
      * 'identity' and an {@link BinaryOperator} to mutate
-     * this initial 'identity' until every Element is
+     * this initial 'identity' until every element is
      * used.
      *
      * @param identity the initial value
      * @param accumulator the accumulator to mutate the value
-     * @return the single return Element
+     * @return the single return element
      * @see Stream#reduce(Object, BinaryOperator) for more information regarding this method
      */
     default T reduce(T identity, BinaryOperator<T> accumulator) {
@@ -581,7 +641,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * This is used as a common API for the implementation. Calling from outside should
      * not be done.
      *
-     * @return if this stream has at least one Element left
+     * @return if this stream has at least one element left
      */
     default boolean hasNext() {
         throw new UnsupportedOperationException();
