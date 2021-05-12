@@ -173,10 +173,8 @@ public interface FunctionalStream<T> extends Iterable<T> {
      *
      * @param <K> the type of stream elements
      * @param seed the initial element
-     * @param hasNext a predicate to apply to elements to determine when the
-     *                stream must terminate.
-     * @param next a function to be applied to the previous element to produce
-     *             a new element
+     * @param hasNext a predicate to apply to elements to determine when the stream must terminate.
+     * @param next a function to be applied to the previous element to produce a new element
      * @return a new sequential {@link FunctionalStream}
      */
     static <K> FunctionalStream<K> iterate(K seed, Predicate<? super K> hasNext, UnaryOperator<K> next) {
