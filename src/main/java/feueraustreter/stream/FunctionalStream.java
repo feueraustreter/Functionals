@@ -5,6 +5,7 @@ import feueraustreter.tryfunction.Try;
 import lombok.NonNull;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
@@ -58,6 +59,94 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     static <K, V> FunctionalStream<Map.Entry<K, V>> of(Map<K, V> map) {
         return new FunctionalStreamImpl<>(map.entrySet().iterator());
+    }
+
+    // TODO: JavaDoc
+    static <K> FunctionalStream<K> empty() {
+        return new FunctionalStreamImpl<>(new Iterator<K>() {
+            @Override
+            public boolean hasNext() {
+                return false;
+            }
+
+            @Override
+            public K next() {
+                return null;
+            }
+        });
+    }
+
+    // TODO: JavaDoc
+    static <K> FunctionalStream<K> of(K element) {
+        AtomicBoolean atomicBoolean = new AtomicBoolean(true);
+        return new FunctionalStreamImpl<>(new Iterator<K>() {
+            @Override
+            public boolean hasNext() {
+                return atomicBoolean.get();
+            }
+
+            @Override
+            public K next() {
+                atomicBoolean.set(false);
+                return element;
+            }
+        });
+    }
+
+    // TODO: JavaDoc
+    static <K> FunctionalStream<K> of(K... elements) {
+        return new FunctionalStreamImpl<>(Arrays.stream(elements).iterator());
+    }
+
+    // TODO: JavaDoc
+    static <K> FunctionalStream<K> iterate(K seed, UnaryOperator<K> f) {
+        AtomicReference<K> current = new AtomicReference<>(seed);
+        return new FunctionalStreamImpl<>(new Iterator<K>() {
+            @Override
+            public boolean hasNext() {
+                return true;
+            }
+
+            @Override
+            public K next() {
+                K now = current.get();
+                current.set(f.apply(now));
+                return now;
+            }
+        });
+    }
+
+    // TODO: JavaDoc
+    static <K> FunctionalStream<K> iterate(K seed, Predicate<? super K> hasNext, UnaryOperator<K> next) {
+        AtomicReference<K> current = new AtomicReference<>(seed);
+        return new FunctionalStreamImpl<>(new Iterator<K>() {
+            @Override
+            public boolean hasNext() {
+                return hasNext.test(current.get());
+            }
+
+            @Override
+            public K next() {
+                K now = current.get();
+                current.set(next.apply(now));
+                return now;
+            }
+        });
+    }
+
+    // TODO: JavaDoc
+    static <K> FunctionalStream<K> generate(Supplier<? extends K> s) {
+        return new FunctionalStreamImpl<>(new Iterator<K>() {
+            @Override
+            public boolean hasNext() {
+                return true;
+            }
+
+            @Override
+            public K next() {
+                return s.get();
+            }
+        });
     }
 
     // Conversion methods
@@ -712,7 +801,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
         return result.get();
     }
 
-    // API for common use cases, like zip()
+    // API for internal use cases, like concat()
 
     /**
      * This is used as a common API for the implementation. Calling from outside should
