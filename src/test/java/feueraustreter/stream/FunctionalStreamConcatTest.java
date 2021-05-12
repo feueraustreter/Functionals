@@ -37,7 +37,6 @@ public class FunctionalStreamConcatTest {
         List<String> result = FunctionalStream.of(stringList)
                 .concat(FunctionalStream.of(alternativeStringList))
                 .toList();
-        assertThat(result.size(), is(5));
         assertThat(result, is(Arrays.asList("1", "2", "3", "4", "5")));
     }
 
@@ -51,7 +50,6 @@ public class FunctionalStreamConcatTest {
         List<String> result = FunctionalStream.of(stringList)
                 .concat(FunctionalStream.of(alternativeStringList))
                 .toList();
-        assertThat(result.size(), is(2));
         assertThat(result, is(Arrays.asList("4", "5")));
     }
 
@@ -66,7 +64,6 @@ public class FunctionalStreamConcatTest {
         List<String> result = FunctionalStream.of(stringList)
                 .concat(FunctionalStream.of(alternativeStringList))
                 .toList();
-        assertThat(result.size(), is(3));
         assertThat(result, is(Arrays.asList("1", "2", "3")));
     }
 

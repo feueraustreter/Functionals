@@ -36,7 +36,6 @@ public class FunctionalStreamDistinctTest {
         List<String> result = FunctionalStream.of(stringList)
                 .distinct()
                 .toList();
-        assertThat(result.size(), is(3));
         assertThat(result, is(Arrays.asList("1", "2", "3")));
     }
 

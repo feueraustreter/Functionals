@@ -35,7 +35,6 @@ public class FunctionalStreamFilterTest {
         List<String> result = FunctionalStream.of(stringList)
                 .filter(s -> s.equals("2"))
                 .toList();
-        assertThat(result.size(), is(1));
         assertThat(result, is(Arrays.asList("2")));
     }
 
@@ -49,7 +48,6 @@ public class FunctionalStreamFilterTest {
         List<String> result = FunctionalStream.of(stringList)
                 .removeAll(s -> s.equals("2"))
                 .toList();
-        assertThat(result.size(), is(2));
         assertThat(result, is(Arrays.asList("1", "3")));
     }
 

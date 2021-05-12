@@ -35,7 +35,6 @@ public class FunctionalStreamMapTest {
         List<Integer> result = FunctionalStream.of(stringList)
                 .map(Integer::parseInt)
                 .toList();
-        assertThat(result.size(), is(3));
         assertThat(result, is(Arrays.asList(1, 2, 3)));
     }
 
