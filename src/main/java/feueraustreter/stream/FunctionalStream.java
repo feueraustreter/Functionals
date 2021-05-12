@@ -1,8 +1,6 @@
 package feueraustreter.stream;
 
-import feueraustreter.lambda.BiHigherOrderFunction;
-import feueraustreter.lambda.HigherOrderFunction;
-import feueraustreter.lambda.ThrowableFunction;
+import feueraustreter.lambda.*;
 import feueraustreter.tryfunction.Try;
 import lombok.NonNull;
 
@@ -49,6 +47,17 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     static <K> FunctionalStream<K> of(Stream<K> stream) {
         return new FunctionalStreamImpl<>(stream.iterator());
+    }
+
+    /**
+     * Create a {@link FunctionalStream} of an existing {@link Map#entrySet()}.
+     *
+     * @param <K> the {@link FunctionalStream} type to use
+     * @param map the {@link Map#entrySet()} ElementSource
+     * @return the new {@link FunctionalStream}
+     */
+    static <K, V> FunctionalStream<Map.Entry<K, V>> of(Map<K, V> map) {
+        return new FunctionalStreamImpl<>(map.entrySet().iterator());
     }
 
     // Conversion methods
@@ -129,6 +138,29 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     FunctionalStream<T> filter(Predicate<? super T> filter);
 
+    // TODO: JavaDoc
+    default FunctionalStream<T> higherOrderFilter(HigherOrderPredicate<T> higherOrderFilter) {
+        return filter(t -> higherOrderFilter.apply(t).test(t));
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> higherOrderFilterWithPrevious(T identity, HigherOrderPredicate<T> higherOrderFilter) {
+        AtomicReference<T> current = new AtomicReference<>(identity);
+        return filter(t -> {
+            T toUse = current.getAndSet(t);
+            return higherOrderFilter.apply(toUse).test(t);
+        });
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> higherOrderFilterAndPrevious(T identity, BiHigherOrderPredicate<T> higherOrderFilter) {
+        AtomicReference<T> current = new AtomicReference<>(identity);
+        return filter(t -> {
+            T toUse = current.getAndSet(t);
+            return higherOrderFilter.apply(toUse, t).test(t);
+        });
+    }
+
     /**
      * Remove anything in this {@link FunctionalStream} that matched
      * the given {@link Predicate}. Drops every element matching it.
@@ -207,7 +239,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return the new {@link FunctionalStream}
      */
     default <K> FunctionalStream<K> ofType(@NonNull Class<K> type) {
-        return filter(Objects::nonNull).filter(t -> type.isAssignableFrom(t.getClass())).map(type::cast);
+        return removeNull().filter(t -> type.isAssignableFrom(t.getClass())).map(type::cast);
     }
 
     /**
@@ -235,24 +267,13 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     /**
      * This can be used to debug the {@link FunctionalStream} and get
-     * every element in a {@link List}.
+     * every element in a {@link Collection}.
      *
-     * @param list the {@link List} to put every element into
+     * @param collection the {@link Collection} to put every element into
      * @return the new {@link FunctionalStream}
      */
-    default FunctionalStream<T> peekResult(List<T> list) {
-        return peek(list::add);
-    }
-
-    /**
-     * This can be used to debug the {@link FunctionalStream} and get
-     * every element in a {@link Set}.
-     *
-     * @param set the {@link Set} to put every element into
-     * @return the new {@link FunctionalStream}
-     */
-    default FunctionalStream<T> peekResult(Set<T> set) {
-        return peek(set::add);
+    default FunctionalStream<T> peekResult(Collection<T> collection) {
+        return peek(collection::add);
     }
 
     /**
@@ -264,6 +285,9 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Stream#limit(long) for more information regarding this method
      */
     default FunctionalStream<T> limit(long count) {
+        if (count < 0) {
+            throw new IllegalArgumentException("Count cannot be negative");
+        }
         AtomicLong current = new AtomicLong(0L);
         return filter(t -> current.getAndIncrement() < count);
     }
@@ -277,6 +301,9 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Stream#skip(long) for more information regarding this method
      */
     default FunctionalStream<T> skip(long count) {
+        if (count < 0) {
+            throw new IllegalArgumentException("Count cannot be negative");
+        }
         AtomicLong current = new AtomicLong(0L);
         return filter(t -> current.getAndIncrement() >= count);
     }
@@ -513,6 +540,31 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     /**
      * Terminate this {@link FunctionalStream} and return
+     * the smallest element determined by natural ordering.
+     * If this {@link FunctionalStream} is empty {@link Optional#empty()}
+     * gets returned. A {@link ClassCastException} can be thrown
+     * when the type 'T' is not a {@link Comparable}.
+     *
+     * @return the smallest element of this {@link FunctionalStream} or none.
+     * @see Stream#min(Comparator) for more information regarding this method
+     */
+    default Optional<T> min() {
+        AtomicReference<Optional<T>> result = new AtomicReference<>(Optional.empty());
+        forEach(t -> {
+            Optional<T> current = result.get();
+            if (!current.isPresent()) {
+                result.set(Optional.of(t));
+                return;
+            }
+            if (((Comparable<T>) current.get()).compareTo(t) > 0) {
+                result.set(Optional.of(t));
+            }
+        });
+        return result.get();
+    }
+
+    /**
+     * Terminate this {@link FunctionalStream} and return
      * the biggest element determined by the {@link Comparator}
      * given. If this {@link FunctionalStream} is empty
      * {@link Optional#empty()} gets returned.
@@ -530,6 +582,31 @@ public interface FunctionalStream<T> extends Iterable<T> {
                 return;
             }
             if (comparator.compare(current.get(), t) < 0) {
+                result.set(Optional.of(t));
+            }
+        });
+        return result.get();
+    }
+
+    /**
+     * Terminate this {@link FunctionalStream} and return
+     * the biggest element determined by natural ordering.
+     * If this {@link FunctionalStream} is empty {@link Optional#empty()}
+     * gets returned. A {@link ClassCastException} can be thrown
+     * when the type 'T' is not a {@link Comparable}.
+     *
+     * @return the smallest element of this {@link FunctionalStream} or none.
+     * @see Stream#max(Comparator) for more information regarding this method
+     */
+    default Optional<T> max() {
+        AtomicReference<Optional<T>> result = new AtomicReference<>(Optional.empty());
+        forEach(t -> {
+            Optional<T> current = result.get();
+            if (!current.isPresent()) {
+                result.set(Optional.of(t));
+                return;
+            }
+            if (((Comparable<T>) current.get()).compareTo(t) < 0) {
                 result.set(Optional.of(t));
             }
         });
