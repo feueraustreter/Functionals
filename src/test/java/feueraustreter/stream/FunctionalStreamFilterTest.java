@@ -17,6 +17,7 @@ package feueraustreter.stream;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -35,6 +36,7 @@ public class FunctionalStreamFilterTest {
                 .filter(s -> s.equals("2"))
                 .toList();
         assertThat(result.size(), is(1));
+        assertThat(result, is(Arrays.asList("2")));
     }
 
     @Test
@@ -48,6 +50,7 @@ public class FunctionalStreamFilterTest {
                 .removeAll(s -> s.equals("2"))
                 .toList();
         assertThat(result.size(), is(2));
+        assertThat(result, is(Arrays.asList("1", "3")));
     }
 
 }

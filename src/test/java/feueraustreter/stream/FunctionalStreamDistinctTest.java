@@ -17,6 +17,7 @@ package feueraustreter.stream;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -36,6 +37,7 @@ public class FunctionalStreamDistinctTest {
                 .distinct()
                 .toList();
         assertThat(result.size(), is(3));
+        assertThat(result, is(Arrays.asList("1", "2", "3")));
     }
 
 }

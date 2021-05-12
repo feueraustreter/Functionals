@@ -16,6 +16,7 @@ package feueraustreter.stream;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -37,6 +38,7 @@ public class FunctionalStreamConcatTest {
                 .concat(FunctionalStream.of(alternativeStringList))
                 .toList();
         assertThat(result.size(), is(5));
+        assertThat(result, is(Arrays.asList("1", "2", "3", "4", "5")));
     }
 
     @Test
@@ -50,6 +52,7 @@ public class FunctionalStreamConcatTest {
                 .concat(FunctionalStream.of(alternativeStringList))
                 .toList();
         assertThat(result.size(), is(2));
+        assertThat(result, is(Arrays.asList("4", "5")));
     }
 
     @Test
@@ -64,6 +67,7 @@ public class FunctionalStreamConcatTest {
                 .concat(FunctionalStream.of(alternativeStringList))
                 .toList();
         assertThat(result.size(), is(3));
+        assertThat(result, is(Arrays.asList("1", "2", "3")));
     }
 
 }
