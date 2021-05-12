@@ -241,19 +241,13 @@ public interface FunctionalStream<T> extends Iterable<T> {
     // TODO: JavaDoc
     default <K> FunctionalStream<K> higherOrderMapWithPrevious(T identity, HigherOrderFunction<T, K> higherOrderMapper) {
         AtomicReference<T> current = new AtomicReference<>(identity);
-        return map(t -> {
-            T toUse = current.getAndSet(t);
-            return higherOrderMapper.apply(toUse).apply(t);
-        });
+        return map(t -> higherOrderMapper.apply(current.getAndSet(t)).apply(t));
     }
 
     // TODO: JavaDoc
     default <K> FunctionalStream<K> higherOrderMapAndPrevious(T identity, BiHigherOrderFunction<T, K> higherOrderMapper) {
         AtomicReference<T> current = new AtomicReference<>(identity);
-        return map(t -> {
-            T toUse = current.getAndSet(t);
-            return higherOrderMapper.apply(toUse, t).apply(t);
-        });
+        return map(t -> higherOrderMapper.apply(current.getAndSet(t), t).apply(t));
     }
 
     /**
@@ -305,19 +299,13 @@ public interface FunctionalStream<T> extends Iterable<T> {
     // TODO: JavaDoc
     default FunctionalStream<T> higherOrderFilterWithPrevious(T identity, HigherOrderPredicate<T> higherOrderFilter) {
         AtomicReference<T> current = new AtomicReference<>(identity);
-        return filter(t -> {
-            T toUse = current.getAndSet(t);
-            return higherOrderFilter.apply(toUse).test(t);
-        });
+        return filter(t -> higherOrderFilter.apply(current.getAndSet(t)).test(t));
     }
 
     // TODO: JavaDoc
     default FunctionalStream<T> higherOrderFilterAndPrevious(T identity, BiHigherOrderPredicate<T> higherOrderFilter) {
         AtomicReference<T> current = new AtomicReference<>(identity);
-        return filter(t -> {
-            T toUse = current.getAndSet(t);
-            return higherOrderFilter.apply(toUse, t).test(t);
-        });
+        return filter(t -> higherOrderFilter.apply(current.getAndSet(t), t).test(t));
     }
 
     /**
@@ -423,6 +411,23 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Stream#peek(Consumer) for more information regarding this method
      */
     FunctionalStream<T> peek(Consumer<? super T> consumer);
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> higherOrderPeek(HigherOrderConsumer<T> higherOrderFilter) {
+        return peek(t -> higherOrderFilter.apply(t).accept(t));
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> higherOrderPeekWithPrevious(T identity, HigherOrderConsumer<T> higherOrderFilter) {
+        AtomicReference<T> current = new AtomicReference<>(identity);
+        return peek(t -> higherOrderFilter.apply(current.getAndSet(t)).accept(t));
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> higherOrderPeekAndPrevious(T identity, BiHigherOrderConsumer<T> higherOrderFilter) {
+        AtomicReference<T> current = new AtomicReference<>(identity);
+        return peek(t -> higherOrderFilter.apply(current.getAndSet(t), t).accept(t));
+    }
 
     /**
      * This can be used to debug the {@link FunctionalStream} and get
@@ -543,6 +548,23 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Stream#forEach(Consumer) for more information regarding this method
      */
     void forEach(Consumer<? super T> consumer);
+
+    // TODO: JavaDoc
+    default void higherOrderForEach(HigherOrderConsumer<T> higherOrderFilter) {
+        forEach(t -> higherOrderFilter.apply(t).accept(t));
+    }
+
+    // TODO: JavaDoc
+    default void higherOrderForEachWithPrevious(T identity, HigherOrderConsumer<T> higherOrderFilter) {
+        AtomicReference<T> current = new AtomicReference<>(identity);
+        forEach(t -> higherOrderFilter.apply(current.getAndSet(t)).accept(t));
+    }
+
+    // TODO: JavaDoc
+    default void higherOrderForEachAndPrevious(T identity, BiHigherOrderConsumer<T> higherOrderFilter) {
+        AtomicReference<T> current = new AtomicReference<>(identity);
+        forEach(t -> higherOrderFilter.apply(current.getAndSet(t), t).accept(t));
+    }
 
     /**
      * Terminate this {@link FunctionalStream} and collect
