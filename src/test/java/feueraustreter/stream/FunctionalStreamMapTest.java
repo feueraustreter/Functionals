@@ -26,7 +26,7 @@ import static org.hamcrest.core.Is.is;
 public class FunctionalStreamMapTest {
 
     @Test
-    public void testFilter() {
+    public void testMap() {
         List<String> stringList = new ArrayList<>();
         stringList.add("1");
         stringList.add("2");
@@ -36,6 +36,32 @@ public class FunctionalStreamMapTest {
                 .map(Integer::parseInt)
                 .toList();
         assertThat(result, is(Arrays.asList(1, 2, 3)));
+    }
+
+    @Test
+    public void testPartialMap() {
+        List<String> stringList = new ArrayList<>();
+        stringList.add("1");
+        stringList.add("2");
+        stringList.add("3");
+
+        List<String> result = FunctionalStream.of(stringList)
+                .partialMap(s -> s.equals("1"), s -> "4")
+                .toList();
+        assertThat(result, is(Arrays.asList("4", "2", "3")));
+    }
+
+    @Test
+    public void testFlatMap() {
+        List<List<String>> stringList = new ArrayList<>();
+        stringList.add(Arrays.asList("1", "2"));
+        stringList.add(Arrays.asList("3", "4"));
+        stringList.add(Arrays.asList("5", "6"));
+
+        List<String> result = FunctionalStream.of(stringList)
+                .flatMap(FunctionalStream::of)
+                .toList();
+        assertThat(result, is(Arrays.asList("1", "2", "3", "4", "5", "6")));
     }
 
 }

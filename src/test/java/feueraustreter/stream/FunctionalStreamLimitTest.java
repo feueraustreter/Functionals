@@ -23,20 +23,32 @@ import java.util.List;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-public class FunctionalStreamDistinctTest {
+public class FunctionalStreamLimitTest {
 
     @Test
-    public void testDistinct() {
+    public void testLimit() {
         List<String> stringList = new ArrayList<>();
         stringList.add("1");
         stringList.add("2");
         stringList.add("3");
+
+        List<String> result = FunctionalStream.of(stringList)
+                .limit(1)
+                .toList();
+        assertThat(result, is(Arrays.asList("1")));
+    }
+
+    @Test
+    public void testSkip() {
+        List<String> stringList = new ArrayList<>();
+        stringList.add("1");
+        stringList.add("2");
         stringList.add("3");
 
         List<String> result = FunctionalStream.of(stringList)
-                .distinct()
+                .skip(1)
                 .toList();
-        assertThat(result, is(Arrays.asList("1", "2", "3")));
+        assertThat(result, is(Arrays.asList("2", "3")));
     }
 
 }

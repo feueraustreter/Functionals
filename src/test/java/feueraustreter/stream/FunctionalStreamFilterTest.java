@@ -51,4 +51,31 @@ public class FunctionalStreamFilterTest {
         assertThat(result, is(Arrays.asList("1", "3")));
     }
 
+    @Test
+    public void testRetainAll() {
+        List<String> stringList = new ArrayList<>();
+        stringList.add("1");
+        stringList.add("2");
+        stringList.add("3");
+
+        List<String> result = FunctionalStream.of(stringList)
+                .retainAll(s -> s.equals("2"))
+                .toList();
+        assertThat(result, is(Arrays.asList("2")));
+    }
+
+    @Test
+    public void testRemoveNull() {
+        List<String> stringList = new ArrayList<>();
+        stringList.add("1");
+        stringList.add(null);
+        stringList.add("2");
+        stringList.add("3");
+
+        List<String> result = FunctionalStream.of(stringList)
+                .removeNull()
+                .toList();
+        assertThat(result, is(Arrays.asList("1", "2", "3")));
+    }
+
 }
