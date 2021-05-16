@@ -31,16 +31,17 @@ public class Test {
         stringListEmpty.add("Hello World10");
         stringListEmpty.add(null);
 
-        FunctionalStream.of(stringListEmpty)
+        boolean result = FunctionalStream.of(stringListEmpty)
                 .concat(FunctionalStream.of(stringList)
                         .map(s -> "T" + s)
                         .concat(FunctionalStream.of(stringList))
                         .map(s -> "T" + s)
                         .concat(FunctionalStream.of(stringListEmpty)))
-                .removeNull()
-                .filter(s -> !s.equals("THello World"))
+                .dropNull()
+                .filter(s -> !s.startsWith("T"))
                 .peek(System.out::println)
-                .eval();
+                .noneMatch(t -> t.startsWith("H"));
+        System.out.println(result);
     }
 
 }

@@ -14,6 +14,7 @@
 
 package feueraustreter.stream;
 
+import feueraustreter.lambda.ThrowableFunction;
 import lombok.NonNull;
 
 import java.util.HashSet;
@@ -66,6 +67,19 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
                     current.close();
                 }
             });
+        };
+        return functionalStream;
+    }
+
+    @Override
+    public <K, E extends Throwable> FunctionalStream<K> mapFilter(ThrowableFunction<T, E, K> throwableFunction) {
+        FunctionalStreamImpl<K> functionalStream = new FunctionalStreamImpl<>(root);
+        downstream = t -> {
+            try {
+                functionalStream.downstream.accept(throwableFunction.apply(t));
+            } catch (Throwable e) {
+                // Ignored
+            }
         };
         return functionalStream;
     }

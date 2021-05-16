@@ -14,7 +14,10 @@
 
 package feueraustreter.stream;
 
-import feueraustreter.lambda.*;
+import feueraustreter.lambda.HigherOrderConsumer;
+import feueraustreter.lambda.HigherOrderFunction;
+import feueraustreter.lambda.HigherOrderPredicate;
+import feueraustreter.lambda.ThrowableFunction;
 import feueraustreter.tryfunction.Try;
 import lombok.NonNull;
 
@@ -250,18 +253,6 @@ public interface FunctionalStream<T> extends Iterable<T> {
         return map(t -> higherOrderMapper.apply(t).apply(t));
     }
 
-    // TODO: JavaDoc
-    default <K> FunctionalStream<K> higherOrderMapWithPrevious(T identity, HigherOrderFunction<T, K> higherOrderMapper) {
-        AtomicReference<T> current = new AtomicReference<>(identity);
-        return map(t -> higherOrderMapper.apply(current.getAndSet(t)).apply(t));
-    }
-
-    // TODO: JavaDoc
-    default <K> FunctionalStream<K> higherOrderMapAndPrevious(T identity, BiHigherOrderFunction<T, K> higherOrderMapper) {
-        AtomicReference<T> current = new AtomicReference<>(identity);
-        return map(t -> higherOrderMapper.apply(current.getAndSet(t), t).apply(t));
-    }
-
     /**
      * Convert a {@link FunctionalStream} of {@link FunctionalStream}
      * to a {@link FunctionalStream} by applying every element of the
@@ -284,13 +275,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return the new {@link FunctionalStream}
      */
     default FunctionalStream<T> partialMap(Predicate<? super T> filter, UnaryOperator<T> mapper) {
-        return map(t -> {
-            if (filter.test(t)) {
-                return mapper.apply(t);
-            } else {
-                return t;
-            }
-        });
+        return map(t -> filter.test(t) ? mapper.apply(t) : t);
+    }
+
+    default <K, E extends Throwable> FunctionalStream<K> mapFilter(ThrowableFunction<T, E, K> throwableFunction) {
+        return map(t -> Try.tryIt(() -> throwableFunction.apply(t))).filter(Try::successful).map(Try::getSuccess);
     }
 
     /**
@@ -308,18 +297,6 @@ public interface FunctionalStream<T> extends Iterable<T> {
         return filter(t -> higherOrderFilter.apply(t).test(t));
     }
 
-    // TODO: JavaDoc
-    default FunctionalStream<T> higherOrderFilterWithPrevious(T identity, HigherOrderPredicate<T> higherOrderFilter) {
-        AtomicReference<T> current = new AtomicReference<>(identity);
-        return filter(t -> higherOrderFilter.apply(current.getAndSet(t)).test(t));
-    }
-
-    // TODO: JavaDoc
-    default FunctionalStream<T> higherOrderFilterAndPrevious(T identity, BiHigherOrderPredicate<T> higherOrderFilter) {
-        AtomicReference<T> current = new AtomicReference<>(identity);
-        return filter(t -> higherOrderFilter.apply(current.getAndSet(t), t).test(t));
-    }
-
     /**
      * Remove anything in this {@link FunctionalStream} that matched
      * the given {@link Predicate}. Drops every element matching it.
@@ -329,21 +306,8 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Stream#filter(Predicate) for more information regarding this method
      * @see #filter(Predicate) for more information regarding this method
      */
-    default FunctionalStream<T> removeAll(Predicate<? super T> filter) {
+    default FunctionalStream<T> drop(Predicate<? super T> filter) {
         return filter(t -> !filter.test(t));
-    }
-
-    /**
-     * Retain anything in this {@link FunctionalStream} that matched
-     * the given {@link Predicate}. Drops every element not matching it.
-     *
-     * @param filter the {@link Predicate} to use
-     * @return the new {@link FunctionalStream}
-     * @see Stream#filter(Predicate) for more information regarding this method
-     * @see #filter(Predicate) for more information regarding this method
-     */
-    default FunctionalStream<T> retainAll(Predicate<? super T> filter) {
-        return filter(filter);
     }
 
     /**
@@ -353,7 +317,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Stream#filter(Predicate) for more information regarding this method
      * @see #filter(Predicate) for more information regarding this method
      */
-    default FunctionalStream<T> removeNull() {
+    default FunctionalStream<T> dropNull() {
         return filter(Objects::nonNull);
     }
 
@@ -398,7 +362,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return the new {@link FunctionalStream}
      */
     default <K> FunctionalStream<K> ofType(@NonNull Class<K> type) {
-        return removeNull().filter(t -> type.isAssignableFrom(t.getClass())).map(type::cast);
+        return filter(t -> t == null || type.isAssignableFrom(t.getClass())).map(type::cast);
     }
 
     /**
@@ -422,23 +386,16 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return the new {@link FunctionalStream}
      * @see Stream#peek(Consumer) for more information regarding this method
      */
-    FunctionalStream<T> peek(Consumer<? super T> consumer);
+    default FunctionalStream<T> peek(Consumer<? super T> consumer) {
+        return map(t -> {
+            consumer.accept(t);
+            return t;
+        });
+    }
 
     // TODO: JavaDoc
     default FunctionalStream<T> higherOrderPeek(HigherOrderConsumer<T> higherOrderFilter) {
         return peek(t -> higherOrderFilter.apply(t).accept(t));
-    }
-
-    // TODO: JavaDoc
-    default FunctionalStream<T> higherOrderPeekWithPrevious(T identity, HigherOrderConsumer<T> higherOrderFilter) {
-        AtomicReference<T> current = new AtomicReference<>(identity);
-        return peek(t -> higherOrderFilter.apply(current.getAndSet(t)).accept(t));
-    }
-
-    // TODO: JavaDoc
-    default FunctionalStream<T> higherOrderPeekAndPrevious(T identity, BiHigherOrderConsumer<T> higherOrderFilter) {
-        AtomicReference<T> current = new AtomicReference<>(identity);
-        return peek(t -> higherOrderFilter.apply(current.getAndSet(t), t).accept(t));
     }
 
     /**
@@ -481,7 +438,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
             throw new IllegalArgumentException("Count cannot be negative");
         }
         AtomicLong current = new AtomicLong(0L);
-        return filter(t -> current.getAndIncrement() >= count);
+        return filter(t -> current.incrementAndGet() > count);
     }
 
     /**
@@ -495,7 +452,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     default FunctionalStream<T> keep(long from, long to) {
         if (to < from) {
-            throw new IllegalArgumentException("From is Smaller than to");
+            throw new IllegalArgumentException("from is smaller than to");
         }
         return skip(from).limit(to - from);
     }
@@ -503,7 +460,9 @@ public interface FunctionalStream<T> extends Iterable<T> {
     /**
      * @return a {@link Stream} of this {@link FunctionalStream}.
      */
-    Stream<T> toStream();
+    default Stream<T> toStream() {
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * Map any element of this {@link FunctionalStream} by some {@link Function}
@@ -520,25 +479,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     /**
-     * Map any element of this {@link FunctionalStream} by some {@link Function}
-     * and ignore if any {@link Throwable} gets thrown. It will retain
-     * every element, that mapped without an {@link Exception}.
-     *
-     * @param <K> the new type of the {@link FunctionalStream}
-     * @param <E> the {@link Throwable} type of the applied {@link Function}
-     * @param tryFunction the Function to apply.
-     * @return the new {@link FunctionalStream}
-     */
-    default <K, E extends Throwable> FunctionalStream<K> tryIt(ThrowableFunction<T, E, K> tryFunction) {
-        return map(t -> Try.tryIt(() -> tryFunction.apply(t))).filter(Try::successful).map(Try::getSuccess);
-    }
-
-    /**
      * Combine this {@link FunctionalStream} with another {@link FunctionalStream}
      * and return one combined {@link FunctionalStream} containing every element
      * of both {@link FunctionalStream}. This operation is optional and can combine
      * both {@link FunctionalStream} in any way, preferably this {@link FunctionalStream}
-     * before the other. If this {@link FunctionalStream} is empty the zip method
+     * before the {@code other}. If this {@link FunctionalStream} is empty the zip method
      * must be evaluated and produce a {@link FunctionalStream} of the elements of
      * the inputted {@link FunctionalStream}.
      *
@@ -564,18 +509,6 @@ public interface FunctionalStream<T> extends Iterable<T> {
     // TODO: JavaDoc
     default void higherOrderForEach(HigherOrderConsumer<T> higherOrderFilter) {
         forEach(t -> higherOrderFilter.apply(t).accept(t));
-    }
-
-    // TODO: JavaDoc
-    default void higherOrderForEachWithPrevious(T identity, HigherOrderConsumer<T> higherOrderFilter) {
-        AtomicReference<T> current = new AtomicReference<>(identity);
-        forEach(t -> higherOrderFilter.apply(current.getAndSet(t)).accept(t));
-    }
-
-    // TODO: JavaDoc
-    default void higherOrderForEachAndPrevious(T identity, BiHigherOrderConsumer<T> higherOrderFilter) {
-        AtomicReference<T> current = new AtomicReference<>(identity);
-        forEach(t -> higherOrderFilter.apply(current.getAndSet(t), t).accept(t));
     }
 
     /**
@@ -613,6 +546,26 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     /**
+     * Terminate this {@link FunctionalStream} and collect it
+     * to a specific type by using a {@link Collector}. Some
+     * common {@link Collector}'s can be found in the
+     * {@link Collectors} class.
+     *
+     * @param <R> the type of the result
+     * @param <A> the intermediate accumulation type of the {@link Collector}
+     * @param collector the {@link Collector} describing the reduction
+     * @return the result of the reduction
+     * @see Collectors
+     * @see Stream#collect(Collector) for more information regarding this method
+     */
+    default <R, A> R collect(Collector<? super T, A, R> collector) {
+        A container = collector.supplier().get();
+        BiConsumer<A, ? super T> biConsumer = collector.accumulator();
+        forEach(t -> biConsumer.accept(container, t));
+        return collector.finisher().apply(container);
+    }
+
+    /**
      * Terminate and evaluate every statement of this {@link FunctionalStream}
      * without any return value.
      */
@@ -632,7 +585,9 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return if any element matched the {@link Predicate}
      * @see Stream#anyMatch(Predicate) for more information regarding this method
      */
-    boolean anyMatch(Predicate<? super T> predicate);
+    default boolean anyMatch(Predicate<? super T> predicate) {
+        return !noneMatch(predicate);
+    }
 
     /**
      * Terminate this {@link FunctionalStream} and
@@ -645,7 +600,9 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return if every element matched the {@link Predicate}
      * @see Stream#allMatch(Predicate) for more information regarding this method
      */
-    boolean allMatch(Predicate<? super T> predicate);
+    default boolean allMatch(Predicate<? super T> predicate) {
+        return noneMatch(predicate.negate());
+    }
 
     /**
      * Terminate this {@link FunctionalStream} and
@@ -669,7 +626,9 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Stream#count() for more information regarding this method
      */
     default long count() {
-        return longSum(t -> 1L);
+        AtomicLong result = new AtomicLong(0);
+        forEach(t -> result.incrementAndGet());
+        return result.get();
     }
 
     /**
@@ -689,7 +648,14 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return the first element of this {@link FunctionalStream} or none.
      * @see Stream#findFirst() for more information regarding this method
      */
-    Optional<T> findFirst();
+    default Optional<T> findFirst() {
+        AtomicReference<Optional<T>> result = new AtomicReference<>(Optional.empty());
+        forEach(t -> {
+            result.set(Optional.ofNullable(t));
+            close();
+        });
+        return result.get();
+    }
 
     /**
      * Terminate this {@link FunctionalStream} and return
@@ -744,12 +710,13 @@ public interface FunctionalStream<T> extends Iterable<T> {
     default Optional<T> min() {
         AtomicReference<Optional<T>> result = new AtomicReference<>(Optional.empty());
         forEach(t -> {
+            Comparable<T> comparable = (Comparable<T>) t;
             Optional<T> current = result.get();
             if (!current.isPresent()) {
                 result.set(Optional.of(t));
                 return;
             }
-            if (((Comparable<T>) current.get()).compareTo(t) > 0) {
+            if (comparable.compareTo(current.get()) < 0) {
                 result.set(Optional.of(t));
             }
         });
@@ -794,36 +761,17 @@ public interface FunctionalStream<T> extends Iterable<T> {
     default Optional<T> max() {
         AtomicReference<Optional<T>> result = new AtomicReference<>(Optional.empty());
         forEach(t -> {
+            Comparable<T> comparable = (Comparable<T>) t;
             Optional<T> current = result.get();
             if (!current.isPresent()) {
                 result.set(Optional.of(t));
                 return;
             }
-            if (((Comparable<T>) current.get()).compareTo(t) < 0) {
+            if (comparable.compareTo(current.get()) > 0) {
                 result.set(Optional.of(t));
             }
         });
         return result.get();
-    }
-
-    /**
-     * Terminate this {@link FunctionalStream} and collect it
-     * to a specific type by using a {@link Collector}. Some
-     * common {@link Collector}'s can be found in the
-     * {@link Collectors} class.
-     *
-     * @param <R> the type of the result
-     * @param <A> the intermediate accumulation type of the {@link Collector}
-     * @param collector the {@link Collector} describing the reduction
-     * @return the result of the reduction
-     * @see Collectors
-     * @see Stream#collect(Collector) for more information regarding this method
-     */
-    default <R, A> R collect(Collector<? super T, A, R> collector) {
-        A container = collector.supplier().get();
-        BiConsumer<A, ? super T> biConsumer = collector.accumulator();
-        forEach(t -> biConsumer.accept(container, t));
-        return collector.finisher().apply(container);
     }
 
     /**
@@ -875,19 +823,6 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     /**
-     * Terminate this {@link FunctionalStream} and return an
-     * array of elements of the {@link FunctionalStream}.
-     *
-     * @param intFunction the array creation function
-     * @return the array with every element
-     * @see Stream#toArray(IntFunction) for more information regarding this method
-     */
-    default T[] toArray(IntFunction<T[]> intFunction) {
-        List<T> list = toList();
-        return list.toArray(intFunction.apply(list.size()));
-    }
-
-    /**
      * Terminate this {@link FunctionalStream} and return
      * a single return element determined by a given
      * 'identity' and an {@link BinaryOperator} to mutate
@@ -903,6 +838,19 @@ public interface FunctionalStream<T> extends Iterable<T> {
         AtomicReference<T> result = new AtomicReference<>(identity);
         forEach(t -> result.set(accumulator.apply(result.get(), t)));
         return result.get();
+    }
+
+    /**
+     * Terminate this {@link FunctionalStream} and return an
+     * array of elements of the {@link FunctionalStream}.
+     *
+     * @param intFunction the array creation function
+     * @return the array with every element
+     * @see Stream#toArray(IntFunction) for more information regarding this method
+     */
+    default T[] toArray(IntFunction<T[]> intFunction) {
+        List<T> list = toList();
+        return list.toArray(intFunction.apply(list.size()));
     }
 
     // API for internal use cases, like concat()

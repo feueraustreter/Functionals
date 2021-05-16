@@ -46,22 +46,9 @@ public class FunctionalStreamFilterTest {
         stringList.add("3");
 
         List<String> result = FunctionalStream.of(stringList)
-                .removeAll(s -> s.equals("2"))
+                .drop(s -> s.equals("2"))
                 .toList();
         assertThat(result, is(Arrays.asList("1", "3")));
-    }
-
-    @Test
-    public void testRetainAll() {
-        List<String> stringList = new ArrayList<>();
-        stringList.add("1");
-        stringList.add("2");
-        stringList.add("3");
-
-        List<String> result = FunctionalStream.of(stringList)
-                .retainAll(s -> s.equals("2"))
-                .toList();
-        assertThat(result, is(Arrays.asList("2")));
     }
 
     @Test
@@ -73,7 +60,7 @@ public class FunctionalStreamFilterTest {
         stringList.add("3");
 
         List<String> result = FunctionalStream.of(stringList)
-                .removeNull()
+                .dropNull()
                 .toList();
         assertThat(result, is(Arrays.asList("1", "2", "3")));
     }
