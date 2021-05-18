@@ -745,11 +745,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
         forEach(t -> {
             Optional<T> current = result.get();
             if (!current.isPresent()) {
-                result.set(Optional.of(t));
+                result.set(Optional.ofNullable(t));
                 return;
             }
             if (comparator.compare(current.get(), t) > 0) {
-                result.set(Optional.of(t));
+                result.set(Optional.ofNullable(t));
             }
         });
         return result.get();
@@ -784,11 +784,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
         forEach(t -> {
             Optional<T> current = result.get();
             if (!current.isPresent()) {
-                result.set(Optional.of(t));
+                result.set(Optional.ofNullable(t));
                 return;
             }
             if (comparator.compare(current.get(), t) < 0) {
-                result.set(Optional.of(t));
+                result.set(Optional.ofNullable(t));
             }
         });
         return result.get();
