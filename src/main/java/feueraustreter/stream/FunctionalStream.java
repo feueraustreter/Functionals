@@ -666,8 +666,9 @@ public interface FunctionalStream<T> extends Iterable<T> {
     /**
      * Terminate this {@link FunctionalStream} and return
      * the first element in this {@link FunctionalStream}.
-     * If this {@link FunctionalStream} is empty
-     * {@link Optional#empty()} gets returned.
+     * If this {@link FunctionalStream} is empty or the
+     * Element is {@code null} {@link Optional#empty()}
+     * gets returned.
      *
      * @return the first element of this {@link FunctionalStream} or none.
      * @see Stream#findFirst() for more information regarding this method
@@ -684,9 +685,10 @@ public interface FunctionalStream<T> extends Iterable<T> {
     /**
      * Terminate this {@link FunctionalStream} and return
      * the first element in this {@link FunctionalStream}
-     * that is also matich the given {@link Predicate}.
-     * If this {@link FunctionalStream} is empty
-     * {@link Optional#empty()} gets returned.
+     * that is also matching the given {@link Predicate}.
+     * If this {@link FunctionalStream} is empty or the
+     * Element is {@code null} {@link Optional#empty()}
+     * gets returned.
      *
      * @param predicate the {@link Predicate} to test with
      * @return the first element of this {@link FunctionalStream} or none.
@@ -694,6 +696,38 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     default Optional<T> findFirst(Predicate<T> predicate) {
         return filter(predicate).findFirst();
+    }
+
+    /**
+     * Terminate this {@link FunctionalStream} and return
+     * the last element in this {@link FunctionalStream}.
+     * If this {@link FunctionalStream} is empty or the
+     * Element is {@code null} {@link Optional#empty()}
+     * gets returned.
+     *
+     * @return the first element of this {@link FunctionalStream} or none.
+     * @see Stream#findFirst() for more information regarding this method
+     */
+    default Optional<T> findLast() {
+        AtomicReference<Optional<T>> result = new AtomicReference<>(Optional.empty());
+        forEach(t -> result.set(Optional.ofNullable(t)));
+        return result.get();
+    }
+
+    /**
+     * Terminate this {@link FunctionalStream} and return
+     * the last element in this {@link FunctionalStream}
+     * that is also matching the given {@link Predicate}.
+     * If this {@link FunctionalStream} is empty or the
+     * Element is {@code null} {@link Optional#empty()}
+     * gets returned.
+     *
+     * @param predicate the {@link Predicate} to test with
+     * @return the first element of this {@link FunctionalStream} or none.
+     * @see Stream#findFirst() for more information regarding this method
+     */
+    default Optional<T> findLast(Predicate<T> predicate) {
+        return filter(predicate).findLast();
     }
 
     /**
