@@ -458,6 +458,8 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     /**
+     * @implNote This operation is optional.
+     *
      * @return a {@link Stream} of this {@link FunctionalStream}.
      */
     default Stream<T> toStream() {
@@ -481,13 +483,17 @@ public interface FunctionalStream<T> extends Iterable<T> {
     /**
      * Combine this {@link FunctionalStream} with another {@link FunctionalStream}
      * and return one combined {@link FunctionalStream} containing every element
-     * of both {@link FunctionalStream}. This operation is optional and can combine
-     * both {@link FunctionalStream} in any way, preferably this {@link FunctionalStream}
-     * before the {@code other}. If this {@link FunctionalStream} is empty the zip method
-     * must be evaluated and produce a {@link FunctionalStream} of the elements of
-     * the inputted {@link FunctionalStream}.
+     * of both {@link FunctionalStream}.
      *
-     * @param other the {@link FunctionalStream} to zip with
+     * @implSpec This operation should not terminate the {@link FunctionalStream} in
+     * any way and work with any other operation done after this.
+     *
+     * @implNote This operation is optional and can combine both {@link FunctionalStream}
+     * in any way, preferably this {@link FunctionalStream} before the {@code other}.
+     * If this {@link FunctionalStream} is empty the concat method must be evaluated and
+     * produce a {@link FunctionalStream} of the elements of the inputted {@link FunctionalStream}.
+     *
+     * @param other the {@link FunctionalStream} to concat with
      * @return the new {@link FunctionalStream}
      */
     default FunctionalStream<T> concat(FunctionalStream<T> other) {
@@ -635,21 +641,23 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Stream#count() for more information regarding this method
      */
     default long count() {
-        AtomicLong result = new AtomicLong(0);
+        AtomicLong result = new AtomicLong();
         forEach(t -> result.incrementAndGet());
         return result.get();
     }
 
     /**
      * Terminate this {@link FunctionalStream} without
-     * evaluating the rest. When you terminate an already
-     * terminated {@link FunctionalStream} an {@link Exception}
-     * should be thrown. When closing a {@link FunctionalStream}
-     * in a terminating operation the {@link FunctionalStream}
-     * should evaluate no further elements and return what it has
-     * right now. Any subsequent calls to {@code #close()} should
-     * be ignored. This terminating behaviour is crucial to some
-     * default implementations.
+     * evaluating the rest.
+     *
+     * @implSpec When closing a {@link FunctionalStream} in a terminating
+     * operation the {@link FunctionalStream} should evaluate no further elements
+     * and return what it has right now.
+     *
+     * @implNote When you terminating a terminated {@link FunctionalStream} an
+     * {@link Exception} should be thrown. Any subsequent calls to {@code #close()}
+     * should be ignored. This terminating behaviour is crucial to some default
+     * implementations.
      *
      * @see Stream#close() for more information regarding this method
      */
@@ -724,19 +732,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Stream#min(Comparator) for more information regarding this method
      */
     default Optional<T> min() {
-        AtomicReference<Optional<T>> result = new AtomicReference<>(Optional.empty());
-        forEach(t -> {
-            Comparable<T> comparable = (Comparable<T>) t;
-            Optional<T> current = result.get();
-            if (!current.isPresent()) {
-                result.set(Optional.of(t));
-                return;
-            }
-            if (comparable.compareTo(current.get()) < 0) {
-                result.set(Optional.of(t));
-            }
-        });
-        return result.get();
+        return min((o1, o2) -> ((Comparable<T>) o1).compareTo(o2));
     }
 
     /**
@@ -775,19 +771,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Stream#max(Comparator) for more information regarding this method
      */
     default Optional<T> max() {
-        AtomicReference<Optional<T>> result = new AtomicReference<>(Optional.empty());
-        forEach(t -> {
-            Comparable<T> comparable = (Comparable<T>) t;
-            Optional<T> current = result.get();
-            if (!current.isPresent()) {
-                result.set(Optional.of(t));
-                return;
-            }
-            if (comparable.compareTo(current.get()) > 0) {
-                result.set(Optional.of(t));
-            }
-        });
-        return result.get();
+        return max((o1, o2) -> ((Comparable<T>) o1).compareTo(o2));
     }
 
     /**
