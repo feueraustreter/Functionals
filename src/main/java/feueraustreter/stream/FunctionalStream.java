@@ -575,6 +575,15 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     /**
+     * Terminate and evaluate this {@link FunctionalStream} but stop on the first
+     * result found. This is the equivalent of calling {@link #findFirst()} and
+     * ignoring the return value.
+     */
+    default void evalFirst() {
+        findFirst();
+    }
+
+    /**
      * Terminate this {@link FunctionalStream} and
      * check if one element can be found that qualifies to
      * the {@link Predicate} given. The {@link Predicate}
@@ -633,7 +642,14 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     /**
      * Terminate this {@link FunctionalStream} without
-     * evaluating anything.
+     * evaluating the rest. When you terminate an already
+     * terminated {@link FunctionalStream} an {@link Exception}
+     * should be thrown. When closing a {@link FunctionalStream}
+     * in a terminating operation the {@link FunctionalStream}
+     * should evaluate no further elements and return what it has
+     * right now. Any subsequent calls to {@code #close()} should
+     * be ignored. This terminating behaviour is crucial to some
+     * default implementations.
      *
      * @see Stream#close() for more information regarding this method
      */

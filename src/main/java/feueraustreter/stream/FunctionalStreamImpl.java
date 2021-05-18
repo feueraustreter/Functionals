@@ -225,17 +225,19 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
             downstream.accept(streamSource.next());
             return;
         }
-        if (otherStreamSources.stream().noneMatch(FunctionalStream::hasNext)) {
-            return;
+        for (FunctionalStream<?> functionalStream : otherStreamSources) {
+            if (functionalStream.hasNext()) {
+                functionalStream.evalNext();
+                return;
+            }
         }
-        otherStreamSources.stream().filter(FunctionalStream::hasNext).peek(FunctionalStream::evalNext).findFirst();
     }
 
     private Optional<T> evalToNextOutput() {
         AtomicReference<Optional<T>> atomicReference = new AtomicReference<>(Optional.empty());
         downstream = t -> atomicReference.set(Optional.of(t));
         while (hasNext() && !atomicReference.get().isPresent()) {
-            root.evalNext();
+            evalNext();
             if (root.shortCircuit) {
                 break;
             }
