@@ -654,7 +654,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * operation the {@link FunctionalStream} should evaluate no further elements
      * and return what it has right now.
      *
-     * @implNote When you terminating a terminated {@link FunctionalStream} an
+     * @implNote When you terminate a terminated {@link FunctionalStream} an
      * {@link Exception} should be thrown. Any subsequent calls to {@code #close()}
      * should be ignored. This terminating behaviour is crucial to some default
      * implementations.
