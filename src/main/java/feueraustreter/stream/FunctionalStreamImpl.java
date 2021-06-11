@@ -17,10 +17,7 @@ package feueraustreter.stream;
 import feueraustreter.lambda.ThrowableFunction;
 import lombok.NonNull;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -96,6 +93,16 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     }
 
     @Override
+    public FunctionalStream<T> peek(Consumer<? super T> consumer) {
+        FunctionalStreamImpl<T> functionalStream = new FunctionalStreamImpl<>(root);
+        downstream = t -> {
+            functionalStream.downstream.accept(t);
+            consumer.accept(t);
+        };
+        return functionalStream;
+    }
+
+    @Override
     public Iterator<T> iterator() {
         AtomicReference<Optional<T>> atomicReference = new AtomicReference<>();
         atomicReference.set(evalToNextOutput());
@@ -126,6 +133,25 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         other = other.peek(t -> functionalStream.downstream.accept(t));
         root.otherStreamSources.add(other);
         return functionalStream;
+    }
+
+    @Override
+    public FunctionalStream<T> insert(Consumer<Sink<T>> sink) {
+        LinkedList<T> list = new LinkedList<>();
+        sink.accept(list::add);
+
+        Iterator<T> iterator = new Iterator<T>() {
+            @Override
+            public boolean hasNext() {
+                return !list.isEmpty();
+            }
+
+            @Override
+            public T next() {
+                return list.removeFirst();
+            }
+        };
+        return concat(iterator);
     }
 
     @Override

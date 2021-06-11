@@ -16,10 +16,61 @@ package feueraustreter.stream;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Test {
 
     public static void main(String[] args) {
+        // test1();
+        test2();
+        // test5();
+    }
+
+    private static void test5() {
+        FunctionalStream.iterateLong(1L, 500)
+                .forkingMap(l -> l % 5 == 0 || l % 3 == 0, l -> (l % 3 == 0 ? "Fizz" : "") + (l % 5 == 0 ? "Buzz" : ""), l -> l + "")
+                .forEach(System.out::println);
+    }
+
+    private static void test4() {
+        for (String string : FunctionalStream.iterate(1L, l -> l < 500, l -> l + 1)
+                .map(l -> {
+                    if (l % 15 == 0) return "FizzBuzz";
+                    if (l % 5 == 0) return "Buzz";
+                    if (l % 3 == 0) return "Fizz";
+                    return l + "";
+                })) {
+            System.out.println(string);
+        }
+    }
+
+    private static void test3() {
+        FunctionalStream.iterate(1L, l -> l < 500, l -> l + 1)
+                .map(l -> {
+                    if (l % 15 == 0) return "FizzBuzz";
+                    if (l % 5 == 0) return "Buzz";
+                    if (l % 3 == 0) return "Fizz";
+                    return l + "";
+                })
+                .forEach(System.out::println);
+    }
+
+    private static void test2() {
+        AtomicReference<Sink<Long>> longSink = new AtomicReference<>(null);
+        FunctionalStream.of(1L)
+                .filteredInsert(longSink::set, l -> l < 10000)
+                .peek(l -> longSink.get().accept(l + 1))
+                .map(l -> {
+                    if (l % 15 == 0) return "FizzBuzz";
+                    if (l % 5 == 0) return "Buzz";
+                    if (l % 3 == 0) return "Fizz";
+                    return l + "";
+                })
+                .toStream()
+                .forEach(System.out::println);
+    }
+
+    private static void test1() {
         List<String> stringList = new ArrayList<>();
         stringList.add("Hello World");
         stringList.add("Hello World2");
@@ -34,9 +85,9 @@ public class Test {
         boolean result = FunctionalStream.of(stringListEmpty)
                 .concat(FunctionalStream.of(stringList)
                         .map(s -> "T" + s)
-                        .concat(FunctionalStream.of(stringList))
+                        .concat(stringList)
                         .map(s -> "T" + s)
-                        .concat(FunctionalStream.of(stringListEmpty)))
+                        .concat(stringListEmpty))
                 .dropNull()
                 .filter(s -> !s.startsWith("T"))
                 .peek(System.out::println)
