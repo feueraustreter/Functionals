@@ -27,9 +27,10 @@ public class Test {
     }
 
     private static void test5() {
-        FunctionalStream.iterateLong(1L, 500)
-                .forkingMap(l -> l % 5 == 0 || l % 3 == 0, l -> (l % 3 == 0 ? "Fizz" : "") + (l % 5 == 0 ? "Buzz" : ""), l -> l + "")
+        FunctionalStream.iterateLong(1, 100)
+                .forkingMap(l -> l % 5 == 0 || l % 3 == 0, l -> (l % 3 == 0 ? "Fizz" : "") + (l % 5 == 0 ? "Buzz" : ""), Object::toString)
                 .forEach(System.out::println);
+                // .eval();
     }
 
     private static void test4() {
@@ -58,7 +59,7 @@ public class Test {
     private static void test2() {
         AtomicReference<Sink<Long>> longSink = new AtomicReference<>(null);
         FunctionalStream.of(1L)
-                .filteredInsert(longSink::set, l -> l < 10000)
+                .filteredInsert(longSink::set, l -> l < 1000)
                 .peek(l -> longSink.get().accept(l + 1))
                 .map(l -> {
                     if (l % 15 == 0) return "FizzBuzz";
@@ -66,7 +67,6 @@ public class Test {
                     if (l % 3 == 0) return "Fizz";
                     return l + "";
                 })
-                .toStream()
                 .forEach(System.out::println);
     }
 

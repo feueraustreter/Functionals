@@ -45,6 +45,20 @@ public interface FunctionalStream<T> extends Iterable<T> {
         return new FunctionalStreamImpl<>(iterable.iterator());
     }
 
+    static <K> FunctionalStream<K> ofWithoutComodification(List<K> list) {
+        return of(new Iterator<K>() {
+            @Override
+            public boolean hasNext() {
+                return !list.isEmpty();
+            }
+
+            @Override
+            public K next() {
+                return list.remove(0);
+            }
+        });
+    }
+
     /**
      * Create a {@link FunctionalStream} of an existing {@link Iterator}.
      *
@@ -276,6 +290,38 @@ public interface FunctionalStream<T> extends Iterable<T> {
         });
     }
 
+    // TODO: JavaDoc
+    static <K> FunctionalStream<K> generate(LongPredicate hasNext, Supplier<? extends K> s) {
+        AtomicLong index = new AtomicLong(0);
+        return new FunctionalStreamImpl<>(new Iterator<K>() {
+            @Override
+            public boolean hasNext() {
+                return hasNext.test(index.get());
+            }
+
+            @Override
+            public K next() {
+                index.incrementAndGet();
+                return s.get();
+            }
+        });
+    }
+
+    // TODO: JavaDoc
+    static <K> FunctionalStream<K> generate(BooleanSupplier hasNext, Supplier<? extends K> next) {
+        return new FunctionalStreamImpl<>(new Iterator<K>() {
+            @Override
+            public boolean hasNext() {
+                return hasNext.getAsBoolean();
+            }
+
+            @Override
+            public K next() {
+                return next.get();
+            }
+        });
+    }
+
     // Conversion methods
 
     /**
@@ -383,6 +429,25 @@ public interface FunctionalStream<T> extends Iterable<T> {
     default FunctionalStream<T> filter(BiPredicate<Long, ? super T> filter) {
         AtomicLong atomicLong = new AtomicLong(0);
         return filter(t -> filter.test(atomicLong.getAndIncrement(), t));
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> filterIdentitySequences() {
+        AtomicReference<T> current = new AtomicReference<>();
+        return filter(t -> current.getAndSet(t) != t);
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> filterSequences() {
+        AtomicReference<T> current = new AtomicReference<>();
+        AtomicBoolean initial = new AtomicBoolean(true);
+        return filter(t -> {
+            if (t == null && initial.get()) return initial.getAndSet(false);
+            if (current.get() == null && t == null) return false;
+            if (current.get() != null && current.get().equals(t)) return false;
+            current.set(t);
+            return true;
+        });
     }
 
     // TODO: JavaDoc
@@ -640,7 +705,9 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     // TODO: JavaDoc
     default FunctionalStream<T> insert(Consumer<Sink<T>> sink) {
-        throw new UnsupportedOperationException();
+        LinkedList<T> list = new LinkedList<>();
+        sink.accept(list::add);
+        return concat(ofWithoutComodification(list));
     }
 
     // TODO: JavaDoc
@@ -651,6 +718,16 @@ public interface FunctionalStream<T> extends Iterable<T> {
             if (filter.test(t)) sinkAtomicReference.get().accept(t);
         });
         return insertedStream;
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> duplicate() {
+        return duplicate(1);
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> duplicate(long duplications) {
+        return flatMap(t -> generate(l -> l <= duplications, () -> t));
     }
 
     // Terminating methods
