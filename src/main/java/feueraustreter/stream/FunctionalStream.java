@@ -545,7 +545,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
         });
     }
 
-    default FunctionalStream<T> conditionalPeek(Predicate<? super T> condition, Consumer<? super T> consumer) {
+    default FunctionalStream<T> peek(Consumer<? super T> consumer, Predicate<? super T> condition) {
         return map(t -> {
             if (condition.test(t)) {
                 consumer.accept(t);
@@ -566,8 +566,22 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @param collection the {@link Collection} to put every element into
      * @return the new {@link FunctionalStream}
      */
-    default FunctionalStream<T> peekResult(Collection<? super T> collection) {
+    default FunctionalStream<T> peek(Collection<? super T> collection) {
         return peek(collection::add);
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> inline(Runnable runnable) {
+        return peek(ignored -> runnable.run());
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> inline(Runnable runnable, Predicate<? super T> condition) {
+        return peek(ignored -> {
+            if (condition.test(ignored)) {
+                runnable.run();
+            }
+        });
     }
 
     /**
@@ -726,19 +740,6 @@ public interface FunctionalStream<T> extends Iterable<T> {
     // TODO: JavaDoc
     default FunctionalStream<T> onFinish(Runnable runnable) {
         throw new UnsupportedOperationException();
-    }
-
-    // TODO: JavaDoc
-    default FunctionalStream<T> inline(Runnable runnable) {
-        return peek(ignored -> runnable.run());
-    }
-
-    default FunctionalStream<T> inline(Runnable runnable, Predicate<? super T> condition) {
-        return peek(ignored -> {
-            if (condition.test(ignored)) {
-                runnable.run();
-            }
-        });
     }
 
     // Terminating methods
