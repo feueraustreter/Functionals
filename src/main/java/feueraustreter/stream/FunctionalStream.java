@@ -20,7 +20,9 @@ import feueraustreter.lambda.HigherOrderPredicate;
 import feueraustreter.lambda.ThrowableFunction;
 import feueraustreter.tryfunction.Try;
 import lombok.NonNull;
+import lombok.SneakyThrows;
 
+import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -90,6 +92,23 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     static <K, V> FunctionalStream<Map.Entry<K, V>> of(Map<K, V> map) {
         return new FunctionalStreamImpl<>(map.entrySet().iterator());
+    }
+
+    // TODO: JavaDoc
+    static FunctionalStream<Byte> of(InputStream inputStream) {
+        return new FunctionalStreamImpl<>(new Iterator<Byte>() {
+            @Override
+            @SneakyThrows
+            public boolean hasNext() {
+                return inputStream.available() > 0;
+            }
+
+            @Override
+            @SneakyThrows
+            public Byte next() {
+                return (byte) inputStream.read();
+            }
+        });
     }
 
     /**
@@ -353,8 +372,8 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     // TODO: JavaDoc
-    default <K> FunctionalStream<K> higherOrderMap(HigherOrderFunction<T, K> higherOrderMapper) {
-        return map(t -> higherOrderMapper.apply(t).apply(t));
+    default <K> FunctionalStream<K> higherOrderMap(HigherOrderFunction<T, K> higherOrderMap) {
+        return map(t -> higherOrderMap.apply(t).apply(t));
     }
 
     /**
@@ -567,8 +586,8 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     // TODO: JavaDoc
-    default FunctionalStream<T> higherOrderPeek(HigherOrderConsumer<T> higherOrderFilter) {
-        return peek(t -> higherOrderFilter.apply(t).accept(t));
+    default FunctionalStream<T> higherOrderPeek(HigherOrderConsumer<T> higherOrderPeek) {
+        return peek(t -> higherOrderPeek.apply(t).accept(t));
     }
 
     /**
@@ -743,8 +762,8 @@ public interface FunctionalStream<T> extends Iterable<T> {
     void forEach(Consumer<? super T> consumer);
 
     // TODO: JavaDoc
-    default void higherOrderForEach(HigherOrderConsumer<T> higherOrderFilter) {
-        forEach(t -> higherOrderFilter.apply(t).accept(t));
+    default void higherOrderForEach(HigherOrderConsumer<T> higherOrderForEach) {
+        forEach(t -> higherOrderForEach.apply(t).accept(t));
     }
 
     /**

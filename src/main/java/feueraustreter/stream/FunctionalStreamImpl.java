@@ -33,6 +33,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     private Iterator<T> streamSource = null;
     private Set<FunctionalStream<?>> otherStreamSources = null;
+    private Set<FunctionalStream<?>> specialStreamSources = null;
 
     private Sink<T> downstream = null;
 
@@ -43,6 +44,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     public FunctionalStreamImpl(@NonNull Iterator<T> streamSource) {
         this.streamSource = streamSource;
         this.otherStreamSources = new HashSet<>();
+        specialStreamSources = new HashSet<>();
         this.root = this;
     }
 
@@ -122,6 +124,29 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         downstream = t -> functionalStream.downstream.accept(t);
         other = other.peek(t -> functionalStream.downstream.accept(t));
         root.otherStreamSources.add(other);
+        return functionalStream;
+    }
+
+    @Override
+    public FunctionalStream<T> insert(Consumer<Sink<T>> sink) {
+        FunctionalStreamImpl<T> functionalStream = new FunctionalStreamImpl<>(root);
+        downstream = t -> functionalStream.downstream.accept(t);
+
+        LinkedList<T> list = new LinkedList<>();
+        sink.accept(list::add);
+        FunctionalStream<T> other = new FunctionalStreamImpl<>(new Iterator<T>() {
+            @Override
+            public boolean hasNext() {
+                return !list.isEmpty();
+            }
+
+            @Override
+            public T next() {
+                return list.removeFirst();
+            }
+        });
+        other = other.peek(t -> functionalStream.downstream.accept(t));
+        root.specialStreamSources.add(other);
         return functionalStream;
     }
 
@@ -208,6 +233,12 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     }
 
     private void evalNextInternal() {
+        for (FunctionalStream<?> functionalStream : specialStreamSources) {
+            if (functionalStream.hasNext()) {
+                functionalStream.evalNext();
+                return;
+            }
+        }
         if (streamSource.hasNext()) {
             downstream.accept(streamSource.next());
             return;
@@ -234,6 +265,6 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     @Override
     public boolean hasNext() {
-        return root.streamSource.hasNext() || root.otherStreamSources.stream().anyMatch(FunctionalStream::hasNext);
+        return root.streamSource.hasNext() || root.otherStreamSources.stream().anyMatch(FunctionalStream::hasNext) || root.specialStreamSources.stream().anyMatch(FunctionalStream::hasNext);
     }
 }
