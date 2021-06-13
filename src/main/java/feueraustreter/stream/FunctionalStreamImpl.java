@@ -37,6 +37,9 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     private Sink<T> downstream = null;
 
+    private Set<Runnable> onClose = new HashSet<>();
+    private Set<Runnable> onFinish = new HashSet<>();
+
     protected FunctionalStreamImpl(FunctionalStreamImpl<?> root) {
         this.root = root;
     }
@@ -101,6 +104,9 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         return new Iterator<T>() {
             @Override
             public boolean hasNext() {
+                if (!atomicReference.get().isPresent() || root.shortCircuit) {
+                    root.onFinish.forEach(Runnable::run);
+                }
                 return !root.shortCircuit && atomicReference.get().isPresent();
             }
 
@@ -151,6 +157,18 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     }
 
     @Override
+    public FunctionalStream<T> onClose(Runnable runnable) {
+        root.onClose.add(runnable);
+        return this;
+    }
+
+    @Override
+    public FunctionalStream<T> onFinish(Runnable runnable) {
+        root.onFinish.add(runnable);
+        return this;
+    }
+
+    @Override
     public void forEach(Consumer<? super T> consumer) {
         eval(consumer::accept);
     }
@@ -170,7 +188,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         eval(t -> {
             if (predicate.test(t)) {
                 result.set(true);
-                root.shortCircuit = true;
+                close();
             }
         });
         return result.get();
@@ -182,7 +200,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         eval(t -> {
             if (!predicate.test(t)) {
                 result.set(false);
-                root.shortCircuit = true;
+                close();
             }
         });
         return result.get();
@@ -194,7 +212,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         eval(t -> {
             if (predicate.test(t)) {
                 result.set(false);
-                root.shortCircuit = true;
+                close();
             }
         });
         return result.get();
@@ -203,6 +221,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     @Override
     public void close() {
         root.shortCircuit = true;
+        root.onClose.forEach(Runnable::run);
     }
 
     @Override
@@ -210,7 +229,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         AtomicReference<Optional<T>> result = new AtomicReference<>(Optional.empty());
         eval(t -> {
             result.set(Optional.of(t));
-            root.shortCircuit = true;
+            close();
         });
         return result.get();
     }
@@ -227,9 +246,11 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         while (hasNext()) {
             evalNextInternal();
             if (shortCircuit) {
+                root.onFinish.forEach(Runnable::run);
                 return;
             }
         }
+        root.onFinish.forEach(Runnable::run);
     }
 
     private void evalNextInternal() {

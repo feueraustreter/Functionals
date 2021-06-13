@@ -355,22 +355,6 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     <K> FunctionalStream<K> map(Function<? super T, K> mapper);
 
-    /**
-     * Convert this {@link FunctionalStream} of one type to another
-     * by using the mapper {@link Function} provided. It will be applied
-     * to every element of the current {@link FunctionalStream}. The mapper
-     * will also get a long that represents the Index of this operation.
-     *
-     * @param <K> the new type of the {@link FunctionalStream}
-     * @param mapper the mapper {@link Function} to use
-     * @return the new {@link FunctionalStream}
-     * @see Stream#map(Function) for more information regarding this method
-     */
-    default <K> FunctionalStream<K> map(BiFunction<Long, ? super T, K> mapper) {
-        AtomicLong atomicLong = new AtomicLong(0);
-        return map(t -> mapper.apply(atomicLong.getAndIncrement(), t));
-    }
-
     // TODO: JavaDoc
     default <K> FunctionalStream<K> higherOrderMap(HigherOrderFunction<T, K> higherOrderMap) {
         return map(t -> higherOrderMap.apply(t).apply(t));
@@ -435,21 +419,6 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     FunctionalStream<T> filter(Predicate<? super T> filter);
 
-    /**
-     * Retain anything in this {@link FunctionalStream} that matched
-     * the given {@link Predicate}. Drops every element not matching it.
-     * The filter will also get a long that represents the Index of this
-     * operation.
-     *
-     * @param filter the {@link Predicate} to use
-     * @return the new {@link FunctionalStream}
-     * @see Stream#filter(Predicate) for more information regarding this method
-     */
-    default FunctionalStream<T> filter(BiPredicate<Long, ? super T> filter) {
-        AtomicLong atomicLong = new AtomicLong(0);
-        return filter(t -> filter.test(atomicLong.getAndIncrement(), t));
-    }
-
     // TODO: JavaDoc
     default FunctionalStream<T> filterIdentitySequences() {
         AtomicReference<T> current = new AtomicReference<>();
@@ -470,7 +439,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     // TODO: JavaDoc
-    default FunctionalStream<T> higherOrderFilter(HigherOrderPredicate<T> higherOrderFilter) {
+    default FunctionalStream<T> higherOrderFilter(HigherOrderPredicate<? super T> higherOrderFilter) {
         return filter(t -> higherOrderFilter.apply(t).test(t));
     }
 
@@ -485,21 +454,6 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     default FunctionalStream<T> drop(Predicate<? super T> filter) {
         return filter(t -> !filter.test(t));
-    }
-
-    /**
-     * Remove anything in this {@link FunctionalStream} that matched
-     * the given {@link Predicate}. Drops every element matching it.
-     * The filter will also get a long that represents the Index of this
-     * operation.
-     *
-     * @param filter the {@link Predicate} to use
-     * @return the new {@link FunctionalStream}
-     * @see Stream#filter(Predicate) for more information regarding this method
-     * @see #filter(Predicate) for more information regarding this method
-     */
-    default FunctionalStream<T> drop(BiPredicate<Long, ? super T> filter) {
-        return filter((aLong, t) -> !filter.test(aLong, t));
     }
 
     /**
@@ -526,6 +480,12 @@ public interface FunctionalStream<T> extends Iterable<T> {
     default FunctionalStream<T> distinct() {
         Set<T> set = new HashSet<>();
         return filter(set::add);
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> distinct(Consumer<Set<? super T>> resultConsumer) {
+        Set<? super T> set = new HashSet<>();
+        return filter(set::add).onFinish(() -> resultConsumer.accept(set));
     }
 
     /**
@@ -566,7 +526,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @param tappingFunction the {@link Function} to convert from old to new {@link FunctionalStream}
      * @return the new {@link FunctionalStream}
      */
-    default <K> FunctionalStream<K> tap(Function<FunctionalStream<T>, FunctionalStream<K>> tappingFunction) {
+    default <K> FunctionalStream<K> tap(Function<FunctionalStream<? super T>, FunctionalStream<K>> tappingFunction) {
         return tappingFunction.apply(this);
     }
 
@@ -585,8 +545,17 @@ public interface FunctionalStream<T> extends Iterable<T> {
         });
     }
 
+    default FunctionalStream<T> conditionalPeek(Predicate<? super T> condition, Consumer<? super T> consumer) {
+        return map(t -> {
+            if (condition.test(t)) {
+                consumer.accept(t);
+            }
+            return t;
+        });
+    }
+
     // TODO: JavaDoc
-    default FunctionalStream<T> higherOrderPeek(HigherOrderConsumer<T> higherOrderPeek) {
+    default FunctionalStream<T> higherOrderPeek(HigherOrderConsumer<? super T> higherOrderPeek) {
         return peek(t -> higherOrderPeek.apply(t).accept(t));
     }
 
@@ -597,7 +566,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @param collection the {@link Collection} to put every element into
      * @return the new {@link FunctionalStream}
      */
-    default FunctionalStream<T> peekResult(Collection<T> collection) {
+    default FunctionalStream<T> peekResult(Collection<? super T> collection) {
         return peek(collection::add);
     }
 
@@ -688,7 +657,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @param other the {@link FunctionalStream} to concat with
      * @return the new {@link FunctionalStream}
      */
-    default FunctionalStream<T> concat(FunctionalStream<T> other) {
+    default FunctionalStream<T> concat(FunctionalStream<? super T> other) {
         throw new UnsupportedOperationException();
     }
 
@@ -698,7 +667,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @param other the other {@link Stream}
      * @return the new {@link FunctionalStream}
      */
-    default FunctionalStream<T> concat(Stream<T> other) {
+    default FunctionalStream<T> concat(Stream<? super T> other) {
         return concat(of(other));
     }
 
@@ -708,7 +677,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @param other the other {@link Iterable}
      * @return the new {@link FunctionalStream}
      */
-    default FunctionalStream<T> concat(Iterable<T> other) {
+    default FunctionalStream<T> concat(Iterable<? super T> other) {
         return concat(of(other));
     }
 
@@ -718,20 +687,20 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @param other the other {@link Iterator}
      * @return the new {@link FunctionalStream}
      */
-    default FunctionalStream<T> concat(Iterator<T> other) {
+    default FunctionalStream<T> concat(Iterator<? super T> other) {
         return concat(of(other));
     }
 
     // TODO: JavaDoc
-    default FunctionalStream<T> insert(Consumer<Sink<T>> sink) {
-        LinkedList<T> list = new LinkedList<>();
+    default FunctionalStream<T> insert(Consumer<Sink<? super T>> sink) {
+        LinkedList<? super T> list = new LinkedList<>();
         sink.accept(list::add);
         return concat(ofWithoutComodification(list));
     }
 
     // TODO: JavaDoc
-    default FunctionalStream<T> filteredInsert(Consumer<Sink<T>> sink, Predicate<T> filter) {
-        AtomicReference<Sink<T>> sinkAtomicReference = new AtomicReference<>();
+    default FunctionalStream<T> insert(Consumer<Sink<? super T>> sink, Predicate<? super T> filter) {
+        AtomicReference<Sink<? super T>> sinkAtomicReference = new AtomicReference<>();
         FunctionalStream<T> insertedStream = insert(sinkAtomicReference::set);
         sink.accept(t -> {
             if (filter.test(t)) sinkAtomicReference.get().accept(t);
@@ -749,6 +718,29 @@ public interface FunctionalStream<T> extends Iterable<T> {
         return flatMap(t -> generate(l -> l <= duplications, () -> t));
     }
 
+    // TODO: JavaDoc
+    default FunctionalStream<T> onClose(Runnable runnable) {
+        throw new UnsupportedOperationException();
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> onFinish(Runnable runnable) {
+        throw new UnsupportedOperationException();
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> inline(Runnable runnable) {
+        return peek(ignored -> runnable.run());
+    }
+
+    default FunctionalStream<T> conditionalInline(Predicate<? super T> condition, Runnable runnable) {
+        return peek(ignored -> {
+            if (condition.test(ignored)) {
+                runnable.run();
+            }
+        });
+    }
+
     // Terminating methods
 
     /**
@@ -762,7 +754,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
     void forEach(Consumer<? super T> consumer);
 
     // TODO: JavaDoc
-    default void higherOrderForEach(HigherOrderConsumer<T> higherOrderForEach) {
+    default void higherOrderForEach(HigherOrderConsumer<? super T> higherOrderForEach) {
         forEach(t -> higherOrderForEach.apply(t).accept(t));
     }
 
@@ -943,7 +935,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return the first element of this {@link FunctionalStream} or none.
      * @see Stream#findFirst() for more information regarding this method
      */
-    default Optional<T> findFirst(Predicate<T> predicate) {
+    default Optional<T> findFirst(Predicate<? super T> predicate) {
         return filter(predicate).findFirst();
     }
 
@@ -975,7 +967,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return the first element of this {@link FunctionalStream} or none.
      * @see Stream#findFirst() for more information regarding this method
      */
-    default Optional<T> findLast(Predicate<T> predicate) {
+    default Optional<T> findLast(Predicate<? super T> predicate) {
         return filter(predicate).findLast();
     }
 
@@ -989,7 +981,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return the smallest element of this {@link FunctionalStream} or none.
      * @see Stream#min(Comparator) for more information regarding this method
      */
-    default Optional<T> min(Comparator<T> comparator) {
+    default Optional<T> min(Comparator<? super T> comparator) {
         AtomicReference<Optional<T>> result = new AtomicReference<>(Optional.empty());
         forEach(t -> {
             Optional<T> current = result.get();
@@ -1015,7 +1007,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Stream#min(Comparator) for more information regarding this method
      */
     default Optional<T> min() {
-        return min((o1, o2) -> ((Comparable<T>) o1).compareTo(o2));
+        return min((o1, o2) -> ((Comparable<? super T>) o1).compareTo(o2));
     }
 
     /**
@@ -1028,7 +1020,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return the biggest element of this {@link FunctionalStream} or none.
      * @see Stream#max(Comparator) for more information regarding this method
      */
-    default Optional<T> max(Comparator<T> comparator) {
+    default Optional<T> max(Comparator<? super T> comparator) {
         AtomicReference<Optional<T>> result = new AtomicReference<>(Optional.empty());
         forEach(t -> {
             Optional<T> current = result.get();
@@ -1054,7 +1046,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Stream#max(Comparator) for more information regarding this method
      */
     default Optional<T> max() {
-        return max((o1, o2) -> ((Comparable<T>) o1).compareTo(o2));
+        return max((o1, o2) -> ((Comparable<? super T>) o1).compareTo(o2));
     }
 
     /**

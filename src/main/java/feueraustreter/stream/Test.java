@@ -22,15 +22,49 @@ public class Test {
 
     public static void main(String[] args) {
         // test1();
-        test2();
+        // test2();
         // test5();
+        // test6();
+        test7();
+    }
+
+    private static void test7() {
+        AtomicReference<Sink<Long>> longSink = new AtomicReference<>(null);
+        FunctionalStream.iterateLong(1, 100)
+                .inline(System.out::println)
+                .peek(System.out::println)
+                .insert(longSink::set)
+                .forkingMap(l -> l % 2 == 0, l -> l / 2, l -> l * 3 + 1)
+                .conditionalInline(l -> l == 1, () -> System.out.println("1"))
+                .filter(l -> l != 1)
+                .peek(l -> longSink.get().accept(l))
+                .forEach(System.out::println);
+    }
+
+    private static void test6() {
+        AtomicReference<Sink<Long>> longSink = new AtomicReference<>(null);
+        FunctionalStream.of(1L)
+                .insert(longSink::set, l -> l < 10000 && l > 0)
+                .distinct(longs -> {
+                    List<Long> longList = new ArrayList<>(longs);
+                    longList.sort(Long::compareTo);
+                    longList.forEach(System.out::println);
+                })
+                .peek(l -> {
+                    longSink.get().accept(l * 2);
+                    double d = (l - 1) / 3.0;
+                    if ((long) d == d) {
+                        longSink.get().accept((long) d);
+                    }
+                })
+                .eval();
+                // .forEach(System.out::println);
     }
 
     private static void test5() {
         FunctionalStream.iterateLong(1, 100)
                 .forkingMap(l -> l % 5 == 0 || l % 3 == 0, l -> (l % 3 == 0 ? "Fizz" : "") + (l % 5 == 0 ? "Buzz" : ""), Object::toString)
                 .forEach(System.out::println);
-                // .eval();
     }
 
     private static void test4() {
@@ -59,7 +93,7 @@ public class Test {
     private static void test2() {
         AtomicReference<Sink<Long>> longSink = new AtomicReference<>(null);
         FunctionalStream.of(1L)
-                .filteredInsert(longSink::set, l -> l < 1000)
+                .insert(longSink::set, l -> l < 1000)
                 .peek(l -> longSink.get().accept(l + 1))
                 .map(l -> {
                     if (l % 15 == 0) return "FizzBuzz";
