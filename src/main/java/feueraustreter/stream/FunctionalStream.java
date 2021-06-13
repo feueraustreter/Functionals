@@ -483,8 +483,8 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     // TODO: JavaDoc
-    default FunctionalStream<T> distinct(Consumer<Set<? super T>> resultConsumer) {
-        Set<? super T> set = new HashSet<>();
+    default FunctionalStream<T> distinct(Consumer<Set<T>> resultConsumer) {
+        Set<T> set = new HashSet<>();
         return filter(set::add).onFinish(() -> resultConsumer.accept(set));
     }
 
@@ -657,7 +657,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @param other the {@link FunctionalStream} to concat with
      * @return the new {@link FunctionalStream}
      */
-    default FunctionalStream<T> concat(FunctionalStream<? super T> other) {
+    default FunctionalStream<T> concat(FunctionalStream<T> other) {
         throw new UnsupportedOperationException();
     }
 
@@ -667,7 +667,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @param other the other {@link Stream}
      * @return the new {@link FunctionalStream}
      */
-    default FunctionalStream<T> concat(Stream<? super T> other) {
+    default FunctionalStream<T> concat(Stream<T> other) {
         return concat(of(other));
     }
 
@@ -677,7 +677,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @param other the other {@link Iterable}
      * @return the new {@link FunctionalStream}
      */
-    default FunctionalStream<T> concat(Iterable<? super T> other) {
+    default FunctionalStream<T> concat(Iterable<T> other) {
         return concat(of(other));
     }
 
@@ -687,20 +687,20 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @param other the other {@link Iterator}
      * @return the new {@link FunctionalStream}
      */
-    default FunctionalStream<T> concat(Iterator<? super T> other) {
+    default FunctionalStream<T> concat(Iterator<T> other) {
         return concat(of(other));
     }
 
     // TODO: JavaDoc
-    default FunctionalStream<T> insert(Consumer<Sink<? super T>> sink) {
-        LinkedList<? super T> list = new LinkedList<>();
+    default FunctionalStream<T> insert(Consumer<Sink<T>> sink) {
+        LinkedList<T> list = new LinkedList<>();
         sink.accept(list::add);
         return concat(ofWithoutComodification(list));
     }
 
     // TODO: JavaDoc
-    default FunctionalStream<T> insert(Consumer<Sink<? super T>> sink, Predicate<? super T> filter) {
-        AtomicReference<Sink<? super T>> sinkAtomicReference = new AtomicReference<>();
+    default FunctionalStream<T> insert(Consumer<Sink<T>> sink, Predicate<? super T> filter) {
+        AtomicReference<Sink<T>> sinkAtomicReference = new AtomicReference<>();
         FunctionalStream<T> insertedStream = insert(sinkAtomicReference::set);
         sink.accept(t -> {
             if (filter.test(t)) sinkAtomicReference.get().accept(t);
@@ -733,7 +733,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
         return peek(ignored -> runnable.run());
     }
 
-    default FunctionalStream<T> conditionalInline(Predicate<? super T> condition, Runnable runnable) {
+    default FunctionalStream<T> inline(Runnable runnable, Predicate<? super T> condition) {
         return peek(ignored -> {
             if (condition.test(ignored)) {
                 runnable.run();

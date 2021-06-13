@@ -35,7 +35,7 @@ public class Test {
                 .peek(System.out::println)
                 .insert(longSink::set)
                 .forkingMap(l -> l % 2 == 0, l -> l / 2, l -> l * 3 + 1)
-                .conditionalInline(l -> l == 1, () -> System.out.println("1"))
+                .inline(() -> System.out.println("1"), l -> l == 1)
                 .filter(l -> l != 1)
                 .peek(l -> longSink.get().accept(l))
                 .forEach(System.out::println);
