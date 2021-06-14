@@ -547,9 +547,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     default FunctionalStream<T> peek(Consumer<? super T> consumer, Predicate<? super T> condition) {
         return map(t -> {
-            if (condition.test(t)) {
-                consumer.accept(t);
-            }
+            if (condition.test(t)) consumer.accept(t);
             return t;
         });
     }
@@ -577,11 +575,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     // TODO: JavaDoc
     default FunctionalStream<T> inline(Runnable runnable, Predicate<? super T> condition) {
-        return peek(ignored -> {
-            if (condition.test(ignored)) {
-                runnable.run();
-            }
-        });
+        return peek(ignored -> runnable.run(), condition);
     }
 
     /**
