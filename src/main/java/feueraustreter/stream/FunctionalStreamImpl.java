@@ -225,6 +225,11 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     }
 
     @Override
+    public boolean isClosed() {
+        return root.shortCircuit;
+    }
+
+    @Override
     public Optional<T> findFirst() {
         AtomicReference<Optional<T>> result = new AtomicReference<>(Optional.empty());
         eval(t -> {

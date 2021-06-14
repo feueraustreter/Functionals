@@ -905,6 +905,9 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     void close();
 
+    // TODO: JavaDoc
+    boolean isClosed();
+
     /**
      * Terminate this {@link FunctionalStream} and return
      * the first element in this {@link FunctionalStream}.
