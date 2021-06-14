@@ -672,7 +672,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return the new {@link FunctionalStream}
      */
     default FunctionalStream<T> concat(FunctionalStream<T> other) {
-        throw new UnsupportedOperationException();
+        return of(this, other).flatMap(ts -> ts);
     }
 
     /**
