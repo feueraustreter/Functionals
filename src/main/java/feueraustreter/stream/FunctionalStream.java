@@ -94,9 +94,14 @@ public interface FunctionalStream<T> extends Iterable<T> {
         return new FunctionalStreamImpl<>(map.entrySet().iterator());
     }
 
-    // TODO: JavaDoc
-    static FunctionalStream<Byte> of(InputStream inputStream) {
-        return new FunctionalStreamImpl<>(new Iterator<Byte>() {
+    /**
+     * See {@link InputStream#read()}.
+     *
+     * @param inputStream the InputStream to use
+     * @return the new {@link FunctionalStream}
+     */
+    static FunctionalStream<Integer> of(InputStream inputStream) {
+        return new FunctionalStreamImpl<>(new Iterator<Integer>() {
             @Override
             @SneakyThrows
             public boolean hasNext() {
@@ -105,8 +110,8 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
             @Override
             @SneakyThrows
-            public Byte next() {
-                return (byte) inputStream.read();
+            public Integer next() {
+                return inputStream.read();
             }
         });
     }
