@@ -142,8 +142,8 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         FunctionalStreamImpl<T> functionalStream = new FunctionalStreamImpl<>(forkedIterator(thisStream));
 
         downstream = t -> {
-            thisStream.add(t);
-            otherStream.add(t);
+            if (!functionalStream.isClosed()) thisStream.add(t);
+            if (!forkedStream.isClosed()) otherStream.add(t);
         };
         fork.accept(forkedStream);
         return functionalStream;
