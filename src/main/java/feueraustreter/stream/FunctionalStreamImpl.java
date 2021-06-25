@@ -35,7 +35,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     private Set<FunctionalStream<?>> otherStreamSources = null;
     private Set<FunctionalStream<?>> specialStreamSources = null;
 
-    private Sink<T> downstream = null;
+    private Sink<T> downstream = t -> {};
 
     private Set<Runnable> onClose = new HashSet<>();
     private Set<Runnable> onFinish = new HashSet<>();
@@ -131,6 +131,39 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         other = other.peek(t -> functionalStream.downstream.accept(t));
         root.otherStreamSources.add(other);
         return functionalStream;
+    }
+
+    @Override
+    public FunctionalStream<T> fork(Consumer<FunctionalStream<T>> fork) {
+        LinkedList<T> thisStream = new LinkedList<>();
+        LinkedList<T> otherStream = new LinkedList<>();
+
+        FunctionalStreamImpl<T> forkedStream = new FunctionalStreamImpl<>(forkedIterator(otherStream));
+        FunctionalStreamImpl<T> functionalStream = new FunctionalStreamImpl<>(forkedIterator(thisStream));
+
+        downstream = t -> {
+            thisStream.add(t);
+            otherStream.add(t);
+        };
+        fork.accept(forkedStream);
+        return functionalStream;
+    }
+
+    private Iterator<T> forkedIterator(LinkedList<T> list) {
+        return new Iterator<T>() {
+            @Override
+            public boolean hasNext() {
+                while (list.isEmpty() && root.hasNext()) {
+                    root.evalNext();
+                }
+                return !list.isEmpty();
+            }
+
+            @Override
+            public T next() {
+                return list.removeFirst();
+            }
+        };
     }
 
     @Override

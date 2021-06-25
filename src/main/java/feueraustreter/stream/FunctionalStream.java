@@ -705,6 +705,13 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     // TODO: JavaDoc
+    default FunctionalStream<T> fork(Consumer<FunctionalStream<T>> fork) {
+        LinkedList<T> list = new LinkedList<>();
+        fork.accept(ofWithoutComodification(list));
+        return peek(list::add);
+    }
+
+    // TODO: JavaDoc
     default FunctionalStream<T> insert(Consumer<Sink<T>> sink) {
         LinkedList<T> list = new LinkedList<>();
         sink.accept(list::add);

@@ -14,6 +14,7 @@
 
 package feueraustreter.stream;
 
+import javax.sound.midi.Soundbank;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -25,7 +26,20 @@ public class Test {
         // test2();
         // test5();
         // test6();
-        test7();
+        // test7();
+        test8();
+    }
+
+    private static void test8() {
+        FunctionalStream.iterateInt(0, 100)
+                .fork(integers -> {
+                    integers.forEach(integer -> {
+                        System.out.println("1: " + integer);
+                    });
+                })
+                .forEach(integer -> {
+                    System.out.println("2: " + integer);
+                });
     }
 
     private static void test7() {
