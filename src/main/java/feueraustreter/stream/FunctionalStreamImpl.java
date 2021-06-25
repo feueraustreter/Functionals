@@ -153,9 +153,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         return new Iterator<T>() {
             @Override
             public boolean hasNext() {
-                while (list.isEmpty() && root.hasNext()) {
-                    root.evalNext();
-                }
+                while (list.isEmpty() && root.hasNext()) root.evalNext();
                 return !list.isEmpty();
             }
 
