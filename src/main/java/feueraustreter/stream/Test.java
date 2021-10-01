@@ -27,7 +27,19 @@ public class Test {
         // test5();
         // test6();
         // test7();
-        test8();
+        // test8();
+        test9();
+    }
+
+    private static void test9() {
+        List<String> strings = new ArrayList<>();
+        strings.add("Hello World");
+        strings.add("Hello World2");
+        strings.add("Hello World3");
+        strings.add("Hello World4");
+        strings.add("Hello World5");
+        FunctionalStream.ofWithoutComodification(strings)
+                .forEach(System.out::println);
     }
 
     private static void test8() {

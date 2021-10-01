@@ -49,14 +49,18 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     static <K> FunctionalStream<K> ofWithoutComodification(List<K> list) {
         return of(new Iterator<K>() {
+            private int index = 0;
+
             @Override
             public boolean hasNext() {
-                return !list.isEmpty();
+                return list.size() > index;
             }
 
             @Override
             public K next() {
-                return list.remove(0);
+                int current = index;
+                index++;
+                return list.get(current);
             }
         });
     }
