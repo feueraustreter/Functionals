@@ -429,6 +429,16 @@ public interface FunctionalStream<T> extends Iterable<T> {
     FunctionalStream<T> filter(Predicate<? super T> filter);
 
     // TODO: JavaDoc
+    default FunctionalStream<T> andFilter(Predicate<? super T>[] filters) {
+        return filter(t -> Arrays.stream(filters).allMatch(f -> f.test(t)));
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> orFilter(Predicate<? super T>[] filters) {
+        return filter(t -> Arrays.stream(filters).anyMatch(f -> f.test(t)));
+    }
+
+    // TODO: JavaDoc
     default FunctionalStream<T> filterIdentitySequences() {
         AtomicReference<T> current = new AtomicReference<>();
         return filter(t -> current.getAndSet(t) != t);
