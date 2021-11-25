@@ -47,7 +47,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     public <K> FunctionalStream<K> flatMap(Function<? super T, FunctionalStream<K>> mapper) {
         FunctionalStreamImpl<K> result = new FunctionalStreamImpl<>(this);
         result.operations.add((Predicate<T>) t -> {
-            otherStreamSources.computeIfAbsent(virtualIndex, k -> new ArrayList<>()).add(mapper.apply(t));
+            otherStreamSources.computeIfAbsent(index, k -> new ArrayList<>()).add(mapper.apply(t));
             return false;
         });
         return result;
@@ -162,7 +162,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
                     continue;
                 }
                 FunctionalStream<?> current = otherStreams.get(0);
-                Result result = createResult(current.nextElement(), current instanceof FunctionalStreamImpl ? ((FunctionalStreamImpl) current).index : i, virtualIndex);
+                Result result = createResult(current.nextElement(), i, virtualIndex);
                 if (result == null) {
                     return nextElement();
                 }

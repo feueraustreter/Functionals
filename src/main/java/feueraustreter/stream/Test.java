@@ -34,10 +34,10 @@ public class Test {
     }
 
     private static void test11() {
-        FunctionalStream.iterateLong(0, 100)
+        FunctionalStream.iterateLong(0, 1000)
                 .filter(l -> l % 2 == 0)
                 .filter(l -> l % 3 == 0)
-                .filter(l -> l % 5 == 0)
+                .filter(l -> l > 500)
                 .forEach(System.out::println);
     }
 
