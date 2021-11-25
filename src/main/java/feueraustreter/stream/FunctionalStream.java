@@ -892,7 +892,9 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @return if no element matched the {@link Predicate}
      * @see Stream#noneMatch(Predicate) for more information regarding this method
      */
-    boolean noneMatch(Predicate<? super T> predicate);
+    default boolean noneMatch(Predicate<? super T> predicate) {
+        return filter(predicate).count() == 0;
+    }
 
     /**
      * Terminate this {@link FunctionalStream} and
@@ -1167,9 +1169,10 @@ public interface FunctionalStream<T> extends Iterable<T> {
     /**
      * This is used as a common API for the implementation. Calling from outside should
      * not be done.
+     *
+     * @return the next element of the underlying stream
      */
-    default void evalNext() {
+    default T nextElement() {
         throw new UnsupportedOperationException();
     }
-
 }

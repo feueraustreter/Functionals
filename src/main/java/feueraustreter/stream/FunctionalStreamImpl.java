@@ -1,21 +1,6 @@
-/*
- * Copyright 2021 feueraustreter
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package feueraustreter.stream;
 
-import feueraustreter.lambda.ThrowableFunction;
-import lombok.NonNull;
+import lombok.AllArgsConstructor;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -28,93 +13,79 @@ import java.util.stream.StreamSupport;
 
 public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
-    private final FunctionalStreamImpl<?> root;
-    private boolean shortCircuit = false;
-
-    private Iterator<T> streamSource = null;
-    private Set<FunctionalStream<?>> otherStreamSources = null;
-    private Set<FunctionalStream<?>> specialStreamSources = null;
-
-    private Sink<T> downstream = t -> {};
-
+    private int index = 0;
+    private Map<Integer, List<FunctionalStream<?>>> otherStreamSources = new HashMap<>();
+    private AtomicBoolean shortCircuit = new AtomicBoolean(false);
+    private Iterator<?> streamSource;
+    private List<Object> operations = new ArrayList<>();
     private Set<Runnable> onClose = new HashSet<>();
     private Set<Runnable> onFinish = new HashSet<>();
 
-    protected FunctionalStreamImpl(FunctionalStreamImpl<?> root) {
-        this.root = root;
+    protected FunctionalStreamImpl(FunctionalStreamImpl<?> stream) {
+        this.index = stream.index + 1;
+        this.otherStreamSources = stream.otherStreamSources;
+        this.shortCircuit = stream.shortCircuit;
+        this.streamSource = stream.streamSource;
+        this.operations = stream.operations;
+        this.onClose = stream.onClose;
+        this.onFinish = stream.onFinish;
     }
 
-    public FunctionalStreamImpl(@NonNull Iterator<T> streamSource) {
+    public FunctionalStreamImpl(Iterator<?> streamSource) {
         this.streamSource = streamSource;
-        this.otherStreamSources = new HashSet<>();
-        specialStreamSources = new HashSet<>();
-        this.root = this;
     }
 
-    @Override
     public <K> FunctionalStream<K> map(Function<? super T, K> mapper) {
-        FunctionalStreamImpl<K> functionalStream = new FunctionalStreamImpl<>(root);
-        downstream = t -> functionalStream.downstream.accept(mapper.apply(t));
-        return functionalStream;
+        FunctionalStreamImpl<K> result = new FunctionalStreamImpl<>(this);
+        result.operations.add(mapper);
+        return result;
     }
 
     @Override
     public <K> FunctionalStream<K> flatMap(Function<? super T, FunctionalStream<K>> mapper) {
-        FunctionalStreamImpl<K> functionalStream = new FunctionalStreamImpl<>(root);
-        downstream = t -> {
-            FunctionalStream<K> current = mapper.apply(t);
-            current.forEach(k -> {
-                functionalStream.downstream.accept(k);
-                if (root.shortCircuit) {
-                    current.close();
-                }
-            });
-        };
-        return functionalStream;
-    }
-
-    @Override
-    public <K, E extends Throwable> FunctionalStream<K> mapFilter(ThrowableFunction<T, E, K> throwableFunction) {
-        FunctionalStreamImpl<K> functionalStream = new FunctionalStreamImpl<>(root);
-        downstream = t -> {
-            try {
-                functionalStream.downstream.accept(throwableFunction.apply(t));
-            } catch (Throwable e) {
-                // Ignored
-            }
-        };
-        return functionalStream;
+        FunctionalStreamImpl<K> result = new FunctionalStreamImpl<>(this);
+        result.operations.add((Predicate<T>) t -> {
+            otherStreamSources.computeIfAbsent(index, k -> new ArrayList<>()).add(mapper.apply(t));
+            return false;
+        });
+        return result;
     }
 
     @Override
     public FunctionalStream<T> filter(Predicate<? super T> filter) {
-        FunctionalStreamImpl<T> functionalStream = new FunctionalStreamImpl<>(root);
-        downstream = t -> {
-            if (filter.test(t)) {
-                functionalStream.downstream.accept(t);
-            }
-        };
-        return functionalStream;
+        FunctionalStreamImpl<T> result = new FunctionalStreamImpl<>(this);
+        result.operations.add(filter);
+        return result;
     }
 
     @Override
     public Iterator<T> iterator() {
-        AtomicReference<Optional<T>> atomicReference = new AtomicReference<>();
-        atomicReference.set(evalToNextOutput());
+        AtomicReference<T> current = new AtomicReference<>();
+        AtomicBoolean hasNext = new AtomicBoolean(false);
+        if (hasNext()) {
+            current.set(nextElement());
+            hasNext.set(true);
+        }
         return new Iterator<T>() {
             @Override
             public boolean hasNext() {
-                if (!atomicReference.get().isPresent() || root.shortCircuit) {
-                    root.onFinish.forEach(Runnable::run);
-                }
-                return !root.shortCircuit && atomicReference.get().isPresent();
+                return hasNext.get();
             }
 
             @Override
             public T next() {
-                Optional<T> current = atomicReference.get();
-                atomicReference.set(evalToNextOutput());
-                return current.get();
+                T currentValue = current.get();
+                if (FunctionalStreamImpl.this.hasNext()) {
+                    try {
+                        current.set(FunctionalStreamImpl.this.nextElement());
+                        hasNext.set(true);
+                    } catch (NoResultException e) {
+                        hasNext.set(false);
+                    }
+                } else {
+                    hasNext.set(false);
+                }
+                return currentValue;
             }
         };
     }
@@ -125,203 +96,110 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     }
 
     @Override
-    public FunctionalStream<T> concat(FunctionalStream<T> other) {
-        FunctionalStreamImpl<T> functionalStream = new FunctionalStreamImpl<>(root);
-        downstream = t -> functionalStream.downstream.accept(t);
-        other = other.peek(t -> functionalStream.downstream.accept(t));
-        root.otherStreamSources.add(other);
-        return functionalStream;
-    }
-
-    @Override
-    public FunctionalStream<T> fork(Consumer<FunctionalStream<T>> fork) {
-        LinkedList<T> thisStream = new LinkedList<>();
-        LinkedList<T> otherStream = new LinkedList<>();
-
-        FunctionalStreamImpl<T> forkedStream = new FunctionalStreamImpl<>(forkedIterator(otherStream));
-        FunctionalStreamImpl<T> functionalStream = new FunctionalStreamImpl<>(forkedIterator(thisStream));
-
-        downstream = t -> {
-            if (!functionalStream.isClosed()) thisStream.add(t);
-            if (!forkedStream.isClosed()) otherStream.add(t);
-        };
-        fork.accept(forkedStream);
-        return functionalStream;
-    }
-
-    private Iterator<T> forkedIterator(LinkedList<T> list) {
-        return new Iterator<T>() {
-            @Override
-            public boolean hasNext() {
-                while (list.isEmpty() && root.hasNext()) root.evalNext();
-                return !list.isEmpty();
-            }
-
-            @Override
-            public T next() {
-                return list.removeFirst();
-            }
-        };
-    }
-
-    @Override
-    public FunctionalStream<T> insert(Consumer<Sink<T>> sink) {
-        FunctionalStreamImpl<T> functionalStream = new FunctionalStreamImpl<>(root);
-        downstream = t -> functionalStream.downstream.accept(t);
-
-        LinkedList<T> list = new LinkedList<>();
-        sink.accept(list::add);
-        FunctionalStream<T> other = new FunctionalStreamImpl<>(new Iterator<T>() {
-            @Override
-            public boolean hasNext() {
-                return !list.isEmpty();
-            }
-
-            @Override
-            public T next() {
-                return list.removeFirst();
-            }
-        });
-        other = other.peek(t -> functionalStream.downstream.accept(t));
-        root.specialStreamSources.add(other);
-        return functionalStream;
-    }
-
-    @Override
     public FunctionalStream<T> onClose(Runnable runnable) {
-        root.onClose.add(runnable);
+        onClose.add(runnable);
         return this;
     }
 
     @Override
     public FunctionalStream<T> onFinish(Runnable runnable) {
-        root.onFinish.add(runnable);
+        onFinish.add(runnable);
         return this;
     }
 
     @Override
     public void forEach(Consumer<? super T> consumer) {
-        eval(consumer::accept);
-    }
-
-    @Override
-    public void evalNext() {
-        if (downstream == null) {
-            downstream = t -> {
-            };
-        }
-        root.evalNextInternal();
-    }
-
-    @Override
-    public boolean anyMatch(Predicate<? super T> predicate) {
-        AtomicBoolean result = new AtomicBoolean(false);
-        eval(t -> {
-            if (predicate.test(t)) {
-                result.set(true);
-                close();
-            }
-        });
-        return result.get();
-    }
-
-    @Override
-    public boolean allMatch(Predicate<? super T> predicate) {
-        AtomicBoolean result = new AtomicBoolean(true);
-        eval(t -> {
-            if (!predicate.test(t)) {
-                result.set(false);
-                close();
-            }
-        });
-        return result.get();
-    }
-
-    @Override
-    public boolean noneMatch(Predicate<? super T> predicate) {
-        AtomicBoolean result = new AtomicBoolean(true);
-        eval(t -> {
-            if (predicate.test(t)) {
-                result.set(false);
-                close();
-            }
-        });
-        return result.get();
+        iterator().forEachRemaining(consumer);
+        onFinish.forEach(Runnable::run);
     }
 
     @Override
     public void close() {
-        root.shortCircuit = true;
-        root.onClose.forEach(Runnable::run);
+        shortCircuit.set(true);
+        onClose.forEach(Runnable::run);
     }
 
     @Override
     public boolean isClosed() {
-        return root.shortCircuit;
-    }
-
-    @Override
-    public Optional<T> findFirst() {
-        AtomicReference<Optional<T>> result = new AtomicReference<>(Optional.empty());
-        eval(t -> {
-            result.set(Optional.of(t));
-            close();
-        });
-        return result.get();
-    }
-
-    private void eval(Sink<T> sink) {
-        downstream = sink;
-        root.evalAll();
-    }
-
-    private void evalAll() {
-        if (shortCircuit) {
-            throw new UnsupportedOperationException("This Stream is already evaluated");
-        }
-        while (hasNext()) {
-            evalNextInternal();
-            if (shortCircuit) {
-                root.onFinish.forEach(Runnable::run);
-                return;
-            }
-        }
-        root.onFinish.forEach(Runnable::run);
-    }
-
-    private void evalNextInternal() {
-        for (FunctionalStream<?> functionalStream : specialStreamSources) {
-            if (functionalStream.hasNext()) {
-                functionalStream.evalNext();
-                return;
-            }
-        }
-        if (streamSource.hasNext()) {
-            downstream.accept(streamSource.next());
-            return;
-        }
-        for (FunctionalStream<?> functionalStream : otherStreamSources) {
-            if (functionalStream.hasNext()) {
-                functionalStream.evalNext();
-                return;
-            }
-        }
-    }
-
-    private Optional<T> evalToNextOutput() {
-        AtomicReference<Optional<T>> atomicReference = new AtomicReference<>(Optional.empty());
-        downstream = t -> atomicReference.set(Optional.of(t));
-        while (hasNext() && !atomicReference.get().isPresent()) {
-            evalNext();
-            if (root.shortCircuit) {
-                break;
-            }
-        }
-        return atomicReference.get();
+        return shortCircuit.get();
     }
 
     @Override
     public boolean hasNext() {
-        return root.streamSource.hasNext() || root.otherStreamSources.stream().anyMatch(FunctionalStream::hasNext) || root.specialStreamSources.stream().anyMatch(FunctionalStream::hasNext);
+        return !otherStreamSources.isEmpty() || streamSource.hasNext();
+    }
+
+    @Override
+    public T nextElement() {
+        if (!hasNext()) {
+            throw new NoResultException();
+        }
+        if (!otherStreamSources.isEmpty()) {
+            for (int i = index; i >= 0; i--) {
+                List<FunctionalStream<?>> otherStreams = otherStreamSources.get(i);
+                if (otherStreams == null) {
+                    otherStreamSources.remove(i);
+                    continue;
+                }
+                for (int j = otherStreams.size() - 1; j >= 0; j--) {
+                    if (!otherStreams.get(j).hasNext()) {
+                        otherStreams.remove(j);
+                    }
+                }
+                if (otherStreams.isEmpty()) {
+                    otherStreamSources.remove(i);
+                    continue;
+                }
+                FunctionalStream<?> current = otherStreams.get(0);
+                Result result = createResult(current.nextElement(), i + 1, index);
+                if (result == null) {
+                    return nextElement();
+                }
+                return (T) result.value;
+            }
+        }
+        Object object;
+        try {
+            object = streamSource.next();
+        } catch (NoSuchElementException e) {
+            throw new NoResultException(e.getMessage(), e);
+        }
+        Result result = createResult(object, 0, index);
+        if (result == null) {
+            return nextElement();
+        }
+        return (T) result.value;
+    }
+
+    @AllArgsConstructor
+    private static class Result {
+        private Object value;
+    }
+
+    private static class NoResultException extends RuntimeException {
+
+        public NoResultException() {
+            super();
+        }
+
+        public NoResultException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    private Result createResult(Object current, int from, int to) {
+        for (int i = from; i < to; i++) {
+            Object operation = operations.get(i);
+            if (operation instanceof Function) {
+                Function function = (Function) operation;
+                current = function.apply(current);
+            } else if (operation instanceof Predicate) {
+                Predicate predicate = (Predicate) operation;
+                if (!predicate.test(current)) {
+                    return null;
+                }
+            }
+        }
+        return new Result(current);
     }
 }
