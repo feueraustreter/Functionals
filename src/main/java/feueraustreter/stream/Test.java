@@ -30,14 +30,22 @@ public class Test {
         // test8();
         // test9();
         // test10();
-        test11();
+        // test11();
+        test12();
+    }
+
+    private static void test12() {
+        AtomicReference<Sink<Long>> longSink = new AtomicReference<>(null);
+        FunctionalStream.iterateLong(0, 4)
+                .insert(longSink::set, l -> l % 2 == 0)
+                .peek(l -> longSink.get().accept(l - 1))
+                .forEach(System.out::println);
     }
 
     private static void test11() {
         FunctionalStream.iterateLong(0, 1000)
+                .map(l -> l * 3)
                 .filter(l -> l % 2 == 0)
-                .filter(l -> l % 3 == 0)
-                .filter(l -> l > 500)
                 .forEach(System.out::println);
     }
 

@@ -58,6 +58,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         virtualIndex++;
         operations.add(filter);
         return this;
+
         /*
         FunctionalStreamImpl<T> result = new FunctionalStreamImpl<>(this);
         result.operations.add(filter);
@@ -149,20 +150,19 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
             for (int i = virtualIndex; i >= 0; i--) {
                 List<FunctionalStream<?>> otherStreams = otherStreamSources.get(i);
                 if (otherStreams == null) {
-                    otherStreamSources.remove(i);
                     continue;
                 }
+                FunctionalStream<?> selectedStream = null;
                 for (int j = otherStreams.size() - 1; j >= 0; j--) {
-                    if (!otherStreams.get(j).hasNext()) {
-                        otherStreams.remove(j);
+                    if (otherStreams.get(j).hasNext()) {
+                        selectedStream = otherStreams.get(j);
+                        break;
                     }
                 }
-                if (otherStreams.isEmpty()) {
-                    otherStreamSources.remove(i);
+                if (selectedStream == null) {
                     continue;
                 }
-                FunctionalStream<?> current = otherStreams.get(0);
-                Result result = createResult(current.nextElement(), i, virtualIndex);
+                Result result = createResult(selectedStream.nextElement(), i + 1, virtualIndex);
                 if (result == null) {
                     return nextElement();
                 }
