@@ -31,7 +31,14 @@ public class Test {
         // test9();
         // test10();
         // test11();
-        test12();
+        // test12();
+        test13();
+    }
+
+    private static void test13() {
+        boolean result = FunctionalStream.iterateLong(0, 1)
+                .anyMatch(l -> l > 0);
+        System.out.println(result);
     }
 
     private static void test12() {

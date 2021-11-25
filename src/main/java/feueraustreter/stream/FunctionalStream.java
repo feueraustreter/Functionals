@@ -883,7 +883,12 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Stream#noneMatch(Predicate) for more information regarding this method
      */
     default boolean noneMatch(Predicate<? super T> predicate) {
-        return filter(predicate).count() == 0;
+        AtomicBoolean found = new AtomicBoolean(true);
+        filter(predicate).forEach(t -> {
+            found.set(false);
+            close();
+        });
+        return found.get();
     }
 
     /**
