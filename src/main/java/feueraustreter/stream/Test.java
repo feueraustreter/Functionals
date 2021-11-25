@@ -28,8 +28,17 @@ public class Test {
         // test6();
         // test7();
         // test8();
-        test9();
-        test10();
+        // test9();
+        // test10();
+        test11();
+    }
+
+    private static void test11() {
+        FunctionalStream.iterateLong(0, 100)
+                .filter(l -> l % 2 == 0)
+                .filter(l -> l % 3 == 0)
+                .filter(l -> l % 5 == 0)
+                .forEach(System.out::println);
     }
 
     private static void test10() {
@@ -40,7 +49,7 @@ public class Test {
 
     private static void test9() {
         List<Long> longs = new ArrayList<>();
-        longs.add(10L);
+        longs.add(10000000L);
 
         AtomicReference<Sink<Long>> longSink = new AtomicReference<>(null);
         long factorial = FunctionalStream.of(longs)

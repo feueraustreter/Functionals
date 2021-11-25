@@ -558,16 +558,16 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Stream#peek(Consumer) for more information regarding this method
      */
     default FunctionalStream<T> peek(Consumer<? super T> consumer) {
-        return map(t -> {
+        return filter(t -> {
             consumer.accept(t);
-            return t;
+            return true;
         });
     }
 
     default FunctionalStream<T> peek(Consumer<? super T> consumer, Predicate<? super T> condition) {
-        return map(t -> {
+        return filter(t -> {
             if (condition.test(t)) consumer.accept(t);
-            return t;
+            return true;
         });
     }
 
@@ -1106,7 +1106,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * element to type {@link Float}.
      *
      * @param floatFunction the {@link Function} to produce the {@link Float}'s
-     * @param identity the identity value for the reduction
+     * @param identity      the identity value for the reduction
      * @return the multiplication of every {@link Float}
      */
     default float floatMultiplication(Function<T, Float> floatFunction, float identity) {
@@ -1131,7 +1131,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * element to type {@link Integer}.
      *
      * @param integerFunction the {@link Function} to produce the {@link Integer}'s
-     * @param identity the identity value for the reduction
+     * @param identity        the identity value for the reduction
      * @return the sum of every {@link Integer}
      */
     default int integerSum(Function<T, Integer> integerFunction, int identity) {
@@ -1156,7 +1156,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * element to type {@link Integer}.
      *
      * @param integerFunction the {@link Function} to produce the {@link Integer}'s
-     * @param identity the identity value for the reduction
+     * @param identity        the identity value for the reduction
      * @return the multiplication of every {@link Integer}
      */
     default float integerMultiplication(Function<T, Integer> integerFunction, int identity) {
@@ -1181,7 +1181,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * element to type {@link Double}.
      *
      * @param doubleFunction the {@link Function} to produce the {@link Double}'s
-     * @param identity the identity value for the reduction
+     * @param identity       the identity value for the reduction
      * @return the sum of every {@link Double}
      */
     default double doubleSum(Function<T, Double> doubleFunction, double identity) {
@@ -1206,7 +1206,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * element to type {@link Double}.
      *
      * @param doubleFunction the {@link Function} to produce the {@link Double}'s
-     * @param identity the identity value for the reduction
+     * @param identity       the identity value for the reduction
      * @return the multiplication of every {@link Double}
      */
     default double doubleMultiplication(Function<T, Double> doubleFunction, double identity) {
@@ -1231,7 +1231,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * element to type {@link Long}.
      *
      * @param longFunction the {@link Function} to produce the {@link Long}'s
-     * @param identity the identity value for the reduction
+     * @param identity     the identity value for the reduction
      * @return the sum of every {@link Long}
      */
     default long longSum(Function<T, Long> longFunction, long identity) {
@@ -1256,7 +1256,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * element to type {@link Long}.
      *
      * @param longFunction the {@link Function} to produce the {@link Long}'s
-     * @param identity the identity value for the reduction
+     * @param identity     the identity value for the reduction
      * @return the multiplication of every {@link Long}
      */
     default long longMultiplication(Function<T, Long> longFunction, long identity) {

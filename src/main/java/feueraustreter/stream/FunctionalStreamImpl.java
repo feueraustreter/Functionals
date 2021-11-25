@@ -14,6 +14,7 @@ import java.util.stream.StreamSupport;
 public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     private int index = 0;
+    private int virtualIndex = 0;
     private Map<Integer, List<FunctionalStream<?>>> otherStreamSources = new HashMap<>();
     private AtomicBoolean shortCircuit = new AtomicBoolean(false);
     private Iterator<?> streamSource;
@@ -22,7 +23,8 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     private Set<Runnable> onFinish = new HashSet<>();
 
     protected FunctionalStreamImpl(FunctionalStreamImpl<?> stream) {
-        this.index = stream.index + 1;
+        this.index = stream.virtualIndex + 1;
+        this.virtualIndex = stream.virtualIndex + 1;
         this.otherStreamSources = stream.otherStreamSources;
         this.shortCircuit = stream.shortCircuit;
         this.streamSource = stream.streamSource;
@@ -45,7 +47,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     public <K> FunctionalStream<K> flatMap(Function<? super T, FunctionalStream<K>> mapper) {
         FunctionalStreamImpl<K> result = new FunctionalStreamImpl<>(this);
         result.operations.add((Predicate<T>) t -> {
-            otherStreamSources.computeIfAbsent(index, k -> new ArrayList<>()).add(mapper.apply(t));
+            otherStreamSources.computeIfAbsent(virtualIndex, k -> new ArrayList<>()).add(mapper.apply(t));
             return false;
         });
         return result;
@@ -53,9 +55,14 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     @Override
     public FunctionalStream<T> filter(Predicate<? super T> filter) {
+        virtualIndex++;
+        operations.add(filter);
+        return this;
+        /*
         FunctionalStreamImpl<T> result = new FunctionalStreamImpl<>(this);
         result.operations.add(filter);
         return result;
+         */
     }
 
     @Override
@@ -139,7 +146,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
             throw new NoResultException();
         }
         if (!otherStreamSources.isEmpty()) {
-            for (int i = index; i >= 0; i--) {
+            for (int i = virtualIndex; i >= 0; i--) {
                 List<FunctionalStream<?>> otherStreams = otherStreamSources.get(i);
                 if (otherStreams == null) {
                     otherStreamSources.remove(i);
@@ -155,7 +162,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
                     continue;
                 }
                 FunctionalStream<?> current = otherStreams.get(0);
-                Result result = createResult(current.nextElement(), i + 1, index);
+                Result result = createResult(current.nextElement(), current instanceof FunctionalStreamImpl ? ((FunctionalStreamImpl) current).index : i, virtualIndex);
                 if (result == null) {
                     return nextElement();
                 }
@@ -168,7 +175,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         } catch (NoSuchElementException e) {
             throw new NoResultException(e.getMessage(), e);
         }
-        Result result = createResult(object, 0, index);
+        Result result = createResult(object, 0, virtualIndex);
         if (result == null) {
             return nextElement();
         }
