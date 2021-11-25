@@ -727,7 +727,6 @@ public interface FunctionalStream<T> extends Iterable<T> {
         AtomicReference<Sink<T>> sinkAtomicReference = new AtomicReference<>();
         FunctionalStream<T> insertedStream = insert(sinkAtomicReference::set);
         sink.accept(t -> {
-            System.out.println("INSERTING: " + t);
             if (filter.test(t)) sinkAtomicReference.get().accept(t);
         });
         return insertedStream;
