@@ -39,7 +39,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
     /**
      * Create a {@link FunctionalStream} of an existing {@link Iterable}.
      *
-     * @param <K> the {@link FunctionalStream} type to use
+     * @param <K>      the {@link FunctionalStream} type to use
      * @param iterable the {@link Iterable} ElementSource
      * @return the new {@link FunctionalStream}
      */
@@ -68,7 +68,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
     /**
      * Create a {@link FunctionalStream} of an existing {@link Iterator}.
      *
-     * @param <K> the {@link FunctionalStream} type to use
+     * @param <K>      the {@link FunctionalStream} type to use
      * @param iterator the {@link Iterator} ElementSource
      * @return the new {@link FunctionalStream}
      */
@@ -79,7 +79,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
     /**
      * Create a {@link FunctionalStream} of an existing {@link Stream}.
      *
-     * @param <K> the {@link FunctionalStream} type to use
+     * @param <K>    the {@link FunctionalStream} type to use
      * @param stream the {@link Stream} ElementSource
      * @return the new {@link FunctionalStream}
      */
@@ -144,7 +144,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * Returns a sequential {@link FunctionalStream} containing a single element.
      *
      * @param element the single element
-     * @param <K> the type of stream elements
+     * @param <K>     the type of stream elements
      * @return a singleton sequential {@link FunctionalStream}
      */
     static <K> FunctionalStream<K> of(K element) {
@@ -166,7 +166,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
     /**
      * Returns a sequential ordered {@link FunctionalStream} whose elements are the specified values.
      *
-     * @param <K> the type of stream elements
+     * @param <K>      the type of stream elements
      * @param elements the elements of the new stream
      * @return the new {@link FunctionalStream}
      */
@@ -187,9 +187,9 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * {@code n}, will be the result of applying the function {@code f} to the
      * element at position {@code n - 1}.
      *
-     * @param <K> the type of stream elements
+     * @param <K>  the type of stream elements
      * @param seed the initial element
-     * @param f a function to be applied to the previous element to produce a new element
+     * @param f    a function to be applied to the previous element to produce a new element
      * @return a new sequential {@link FunctionalStream}
      */
     static <K> FunctionalStream<K> iterate(K seed, UnaryOperator<K> f) {
@@ -230,10 +230,10 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * and so on iteratively until the {@code hasNext} predicate indicates that
      * the stream should terminate.
      *
-     * @param <K> the type of stream elements
-     * @param seed the initial element
+     * @param <K>     the type of stream elements
+     * @param seed    the initial element
      * @param hasNext a predicate to apply to elements to determine when the stream must terminate.
-     * @param next a function to be applied to the previous element to produce a new element
+     * @param next    a function to be applied to the previous element to produce a new element
      * @return a new sequential {@link FunctionalStream}
      */
     static <K> FunctionalStream<K> iterate(K seed, Predicate<? super K> hasNext, UnaryOperator<K> next) {
@@ -301,7 +301,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * generating constant streams, streams of random elements, etc.
      *
      * @param <K> the type of stream elements
-     * @param s the {@code Supplier} of generated elements
+     * @param s   the {@code Supplier} of generated elements
      * @return a new infinite sequential unordered {@link FunctionalStream}
      */
     static <K> FunctionalStream<K> generate(Supplier<? extends K> s) {
@@ -357,7 +357,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * by using the mapper {@link Function} provided. It will be applied
      * to every element of the current {@link FunctionalStream}.
      *
-     * @param <K> the new type of the {@link FunctionalStream}
+     * @param <K>    the new type of the {@link FunctionalStream}
      * @param mapper the mapper {@link Function} to use
      * @return the new {@link FunctionalStream}
      * @see Stream#map(Function) for more information regarding this method
@@ -374,7 +374,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * to a {@link FunctionalStream} by applying every element of the
      * containing {@link FunctionalStream} to the new {@link FunctionalStream}.
      *
-     * @param <K> the new type of the {@link FunctionalStream}
+     * @param <K>    the new type of the {@link FunctionalStream}
      * @param mapper the mapper {@link Function} to use and get the {@link FunctionalStream} to get the data from
      * @return the new {@link FunctionalStream}
      * @see Stream#flatMap(Function) for more information regarding this method
@@ -386,7 +386,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * by applying every element of the containing {@link FunctionalStream} to
      * the new {@link FunctionalStream}.
      *
-     * @param <K> the new type of the {@link FunctionalStream}
+     * @param <K>    the new type of the {@link FunctionalStream}
      * @param mapper the mapper {@link Function} to use and get the Array to get the data from
      * @return the new {@link FunctionalStream}
      * @see Stream#flatMap(Function) for more information regarding this method
@@ -516,7 +516,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * {@link Function} return an {@link Optional} that is then unwrapped
      * by the successive calls.
      *
-     * @param <K> the new type of the {@link FunctionalStream}
+     * @param <K>          the new type of the {@link FunctionalStream}
      * @param testFunction the mapper {@link Function} to use
      * @return the new {@link FunctionalStream}
      */
@@ -528,7 +528,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * Retain any element in this {@link FunctionalStream} that is not
      * {@code null} and of type 'type'.
      *
-     * @param <K> the new type of the {@link FunctionalStream}
+     * @param <K>  the new type of the {@link FunctionalStream}
      * @param type the {@link Class} type to retain in the {@link FunctionalStream}
      * @return the new {@link FunctionalStream}
      */
@@ -541,7 +541,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * this caller. It can be used by an API to template a specific mapping
      * and provide it as an method to use by the user.
      *
-     * @param <K> the new type of the {@link FunctionalStream}
+     * @param <K>             the new type of the {@link FunctionalStream}
      * @param tappingFunction the {@link Function} to convert from old to new {@link FunctionalStream}
      * @return the new {@link FunctionalStream}
      */
@@ -635,7 +635,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * used to implement paging.
      *
      * @param from which element should be the first in the {@link FunctionalStream}
-     * @param to which element should be the last in the {@link FunctionalStream}
+     * @param to   which element should be the last in the {@link FunctionalStream}
      * @return the new {@link FunctionalStream}
      */
     default FunctionalStream<T> keep(long from, long to) {
@@ -646,9 +646,8 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     /**
-     * @implNote This operation is optional.
-     *
      * @return a {@link Stream} of this {@link FunctionalStream}.
+     * @implNote This operation is optional.
      */
     default Stream<T> toStream() {
         throw new UnsupportedOperationException();
@@ -659,8 +658,8 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * and ignore if any {@link Throwable} gets thrown. It will retain
      * every element, that mapped without an {@link Exception}.
      *
-     * @param <K> the new type of the {@link FunctionalStream}
-     * @param <E> the {@link Throwable} type of the applied {@link Function}
+     * @param <K>         the new type of the {@link FunctionalStream}
+     * @param <E>         the {@link Throwable} type of the applied {@link Function}
      * @param tryFunction the Function to apply.
      * @return the new {@link FunctionalStream}
      */
@@ -673,16 +672,14 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * and return one combined {@link FunctionalStream} containing every element
      * of both {@link FunctionalStream}.
      *
+     * @param other the {@link FunctionalStream} to concat with
+     * @return the new {@link FunctionalStream}
      * @implSpec This operation should not terminate the {@link FunctionalStream} in
      * any way and work with any other operation done after this.
-     *
      * @implNote This operation is optional and can combine both {@link FunctionalStream}
      * in any way, preferably this {@link FunctionalStream} before the {@code other}.
      * If this {@link FunctionalStream} is empty the concat method must be evaluated and
      * produce a {@link FunctionalStream} of the elements of the inputted {@link FunctionalStream}.
-     *
-     * @param other the {@link FunctionalStream} to concat with
-     * @return the new {@link FunctionalStream}
      */
     default FunctionalStream<T> concat(FunctionalStream<T> other) {
         return of(this, other).flatMap(ts -> ts);
@@ -812,8 +809,8 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * common {@link Collector}'s can be found in the
      * {@link Collectors} class.
      *
-     * @param <R> the type of the result
-     * @param <A> the intermediate accumulation type of the {@link Collector}
+     * @param <R>       the type of the result
+     * @param <A>       the intermediate accumulation type of the {@link Collector}
      * @param collector the {@link Collector} describing the reduction
      * @return the result of the reduction
      * @see Collectors
@@ -910,12 +907,10 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @implSpec When closing a {@link FunctionalStream} in a terminating
      * operation the {@link FunctionalStream} should evaluate no further elements
      * and return what it has right now.
-     *
      * @implNote When you terminate a terminated {@link FunctionalStream} an
      * {@link Exception} should be thrown. Any subsequent calls to {@code #close()}
      * should be ignored. This terminating behaviour is crucial to some default
      * implementations.
-     *
      * @see Stream#close() for more information regarding this method
      */
     void close();
@@ -1082,6 +1077,44 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     /**
      * Terminate and reduce this {@link FunctionalStream} to
+     * a {@link Float}. The {@link Function} will map every
+     * element to type {@link Float}.
+     *
+     * @param floatFunction the {@link Function} to produce the {@link Float}'s
+     * @param identity      the identity value for the reduction
+     * @return the sum of every {@link Float}
+     */
+    default float floatSum(Function<T, Float> floatFunction, float identity) {
+        return map(floatFunction).reduce(identity, Float::sum);
+    }
+
+    /**
+     * Terminate and reduce this {@link FunctionalStream} to
+     * a {@link Float}. The {@link Function} will map every
+     * element to type {@link Float}.
+     *
+     * @param floatFunction the {@link Function} to produce the {@link Float}'s
+     * @return the multiplication of every {@link Float}
+     */
+    default float floatMultiplication(Function<T, Float> floatFunction) {
+        return map(floatFunction).reduce(1.0F, (a, b) -> a * b);
+    }
+
+    /**
+     * Terminate and reduce this {@link FunctionalStream} to
+     * a {@link Float}. The {@link Function} will map every
+     * element to type {@link Float}.
+     *
+     * @param floatFunction the {@link Function} to produce the {@link Float}'s
+     * @param identity the identity value for the reduction
+     * @return the multiplication of every {@link Float}
+     */
+    default float floatMultiplication(Function<T, Float> floatFunction, float identity) {
+        return map(floatFunction).reduce(identity, (a, b) -> a * b);
+    }
+
+    /**
+     * Terminate and reduce this {@link FunctionalStream} to
      * a {@link Integer}. The {@link Function} will map every
      * element to type {@link Integer}.
      *
@@ -1090,6 +1123,44 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     default int integerSum(Function<T, Integer> integerFunction) {
         return map(integerFunction).reduce(0, Integer::sum);
+    }
+
+    /**
+     * Terminate and reduce this {@link FunctionalStream} to
+     * a {@link Integer}. The {@link Function} will map every
+     * element to type {@link Integer}.
+     *
+     * @param integerFunction the {@link Function} to produce the {@link Integer}'s
+     * @param identity the identity value for the reduction
+     * @return the sum of every {@link Integer}
+     */
+    default int integerSum(Function<T, Integer> integerFunction, int identity) {
+        return map(integerFunction).reduce(identity, Integer::sum);
+    }
+
+    /**
+     * Terminate and reduce this {@link FunctionalStream} to
+     * a {@link Integer}. The {@link Function} will map every
+     * element to type {@link Integer}.
+     *
+     * @param integerFunction the {@link Function} to produce the {@link Integer}'s
+     * @return the multiplication of every {@link Integer}
+     */
+    default float integerMultiplication(Function<T, Integer> integerFunction) {
+        return map(integerFunction).reduce(1, (a, b) -> a * b);
+    }
+
+    /**
+     * Terminate and reduce this {@link FunctionalStream} to
+     * a {@link Integer}. The {@link Function} will map every
+     * element to type {@link Integer}.
+     *
+     * @param integerFunction the {@link Function} to produce the {@link Integer}'s
+     * @param identity the identity value for the reduction
+     * @return the multiplication of every {@link Integer}
+     */
+    default float integerMultiplication(Function<T, Integer> integerFunction, int identity) {
+        return map(integerFunction).reduce(identity, (a, b) -> a * b);
     }
 
     /**
@@ -1106,6 +1177,44 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     /**
      * Terminate and reduce this {@link FunctionalStream} to
+     * a {@link Double}. The {@link Function} will map every
+     * element to type {@link Double}.
+     *
+     * @param doubleFunction the {@link Function} to produce the {@link Double}'s
+     * @param identity the identity value for the reduction
+     * @return the sum of every {@link Double}
+     */
+    default double doubleSum(Function<T, Double> doubleFunction, double identity) {
+        return map(doubleFunction).reduce(identity, Double::sum);
+    }
+
+    /**
+     * Terminate and reduce this {@link FunctionalStream} to
+     * a {@link Double}. The {@link Function} will map every
+     * element to type {@link Double}.
+     *
+     * @param doubleFunction the {@link Function} to produce the {@link Double}'s
+     * @return the multiplication of every {@link Double}
+     */
+    default double doubleMultiplication(Function<T, Double> doubleFunction) {
+        return map(doubleFunction).reduce(0.0D, (a, b) -> a * b);
+    }
+
+    /**
+     * Terminate and reduce this {@link FunctionalStream} to
+     * a {@link Double}. The {@link Function} will map every
+     * element to type {@link Double}.
+     *
+     * @param doubleFunction the {@link Function} to produce the {@link Double}'s
+     * @param identity the identity value for the reduction
+     * @return the multiplication of every {@link Double}
+     */
+    default double doubleMultiplication(Function<T, Double> doubleFunction, double identity) {
+        return map(doubleFunction).reduce(identity, (a, b) -> a * b);
+    }
+
+    /**
+     * Terminate and reduce this {@link FunctionalStream} to
      * a {@link Long}. The {@link Function} will map every
      * element to type {@link Long}.
      *
@@ -1117,13 +1226,51 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     /**
+     * Terminate and reduce this {@link FunctionalStream} to
+     * a {@link Long}. The {@link Function} will map every
+     * element to type {@link Long}.
+     *
+     * @param longFunction the {@link Function} to produce the {@link Long}'s
+     * @param identity the identity value for the reduction
+     * @return the sum of every {@link Long}
+     */
+    default long longSum(Function<T, Long> longFunction, long identity) {
+        return map(longFunction).reduce(identity, Long::sum);
+    }
+
+    /**
+     * Terminate and reduce this {@link FunctionalStream} to
+     * a {@link Long}. The {@link Function} will map every
+     * element to type {@link Long}.
+     *
+     * @param longFunction the {@link Function} to produce the {@link Long}'s
+     * @return the multiplication of every {@link Long}
+     */
+    default long longMultiplication(Function<T, Long> longFunction) {
+        return map(longFunction).reduce(1L, (a, b) -> a * b);
+    }
+
+    /**
+     * Terminate and reduce this {@link FunctionalStream} to
+     * a {@link Long}. The {@link Function} will map every
+     * element to type {@link Long}.
+     *
+     * @param longFunction the {@link Function} to produce the {@link Long}'s
+     * @param identity the identity value for the reduction
+     * @return the multiplication of every {@link Long}
+     */
+    default long longMultiplication(Function<T, Long> longFunction, long identity) {
+        return map(longFunction).reduce(identity, (a, b) -> a * b);
+    }
+
+    /**
      * Terminate this {@link FunctionalStream} and return
      * a single return element determined by a given
      * 'identity' and an {@link BinaryOperator} to mutate
      * this initial 'identity' until every element is
      * used.
      *
-     * @param identity the initial value
+     * @param identity    the initial value
      * @param accumulator the accumulator to mutate the value
      * @return the single return element
      * @see Stream#reduce(Object, BinaryOperator) for more information regarding this method

@@ -63,8 +63,12 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         AtomicReference<T> current = new AtomicReference<>();
         AtomicBoolean hasNext = new AtomicBoolean(false);
         if (hasNext()) {
-            current.set(nextElement());
-            hasNext.set(true);
+            try {
+                current.set(nextElement());
+                hasNext.set(true);
+            } catch (NoResultException e) {
+                hasNext.set(false);
+            }
         }
         return new Iterator<T>() {
             @Override

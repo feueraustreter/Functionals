@@ -17,6 +17,7 @@ package feueraustreter.stream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 public class Test {
 
@@ -28,9 +29,28 @@ public class Test {
         // test7();
         // test8();
         test9();
+        test10();
+    }
+
+    private static void test10() {
+        long factorial = FunctionalStream.iterateLong(1, 11)
+                .longMultiplication(Function.identity());
+        System.out.println(factorial);
     }
 
     private static void test9() {
+        List<Long> longs = new ArrayList<>();
+        longs.add(10L);
+
+        AtomicReference<Sink<Long>> longSink = new AtomicReference<>(null);
+        long factorial = FunctionalStream.of(longs)
+                .insert(longSink::set, l -> l > 0)
+                .peek(l -> longSink.get().accept(l - 1))
+                .longMultiplication(Function.identity());
+        System.out.println(factorial);
+    }
+
+    private static void test8() {
         List<String> strings = new ArrayList<>();
         strings.add("Hello World");
         strings.add("Hello World2");
@@ -39,18 +59,6 @@ public class Test {
         strings.add("Hello World5");
         FunctionalStream.ofWithoutComodification(strings)
                 .forEach(System.out::println);
-    }
-
-    private static void test8() {
-        FunctionalStream.iterateInt(0, 100)
-                .fork(integers -> {
-                    integers.forEach(integer -> {
-                        System.out.println("1: " + integer);
-                    });
-                })
-                .forEach(integer -> {
-                    System.out.println("2: " + integer);
-                });
     }
 
     private static void test7() {
