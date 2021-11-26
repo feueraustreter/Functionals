@@ -32,12 +32,19 @@ public class Test {
         // test10();
         // test11();
         // test12();
-        test13();
+        // test13();
+        test14();
+    }
+
+    private static void test14() {
+        FunctionalStream.iterate(1L, l -> l != 0, l -> l * 2)
+                .forEach(System.out::println);
     }
 
     private static void test13() {
         boolean result = FunctionalStream.iterateLong(0, 1)
-                .anyMatch(l -> l > 0);
+                .tap(stream -> stream)
+                .anyMatch(l -> (long) l > 0);
         System.out.println(result);
     }
 
@@ -115,7 +122,7 @@ public class Test {
                     }
                 })
                 .eval();
-                // .forEach(System.out::println);
+        // .forEach(System.out::println);
     }
 
     private static void test5() {

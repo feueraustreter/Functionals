@@ -143,43 +143,52 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     @Override
     public T nextElement() {
-        if (!hasNext()) {
-            throw new NoResultException();
-        }
-        if (!otherStreamSources.isEmpty()) {
-            for (int i = virtualIndex; i >= 0; i--) {
-                List<FunctionalStream<?>> otherStreams = otherStreamSources.get(i);
-                if (otherStreams == null) {
-                    continue;
-                }
-                FunctionalStream<?> selectedStream = null;
-                for (int j = otherStreams.size() - 1; j >= 0; j--) {
-                    if (otherStreams.get(j).hasNext()) {
-                        selectedStream = otherStreams.get(j);
+        while (true) {
+            if (!hasNext()) {
+                throw new NoResultException();
+            }
+            boolean fromStart = false;
+
+            if (!otherStreamSources.isEmpty()) {
+                for (int i = virtualIndex; i >= 0; i--) {
+                    List<FunctionalStream<?>> otherStreams = otherStreamSources.get(i);
+                    if (otherStreams == null) {
+                        continue;
+                    }
+                    FunctionalStream<?> selectedStream = null;
+                    for (int j = otherStreams.size() - 1; j >= 0; j--) {
+                        if (otherStreams.get(j).hasNext()) {
+                            selectedStream = otherStreams.get(j);
+                            break;
+                        }
+                    }
+                    if (selectedStream == null) {
+                        continue;
+                    }
+                    Result result = createResult(selectedStream.nextElement(), i + 1, virtualIndex);
+                    if (result == null) {
+                        fromStart = true;
                         break;
                     }
+                    return (T) result.value;
                 }
-                if (selectedStream == null) {
+                if (fromStart) {
                     continue;
                 }
-                Result result = createResult(selectedStream.nextElement(), i + 1, virtualIndex);
-                if (result == null) {
-                    return nextElement();
-                }
-                return (T) result.value;
             }
+
+            Object object;
+            try {
+                object = streamSource.next();
+            } catch (NoSuchElementException e) {
+                throw new NoResultException(e.getMessage(), e);
+            }
+            Result result = createResult(object, 0, virtualIndex);
+            if (result == null) {
+                continue;
+            }
+            return (T) result.value;
         }
-        Object object;
-        try {
-            object = streamSource.next();
-        } catch (NoSuchElementException e) {
-            throw new NoResultException(e.getMessage(), e);
-        }
-        Result result = createResult(object, 0, virtualIndex);
-        if (result == null) {
-            return nextElement();
-        }
-        return (T) result.value;
     }
 
     @AllArgsConstructor
