@@ -15,7 +15,9 @@
 package feueraustreter.stream;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -33,7 +35,18 @@ public class Test {
         // test11();
         // test12();
         // test13();
-        test14();
+        // test14();
+        // test15();
+    }
+
+    private static void test15() {
+        Set<Long> distinctionSet = new HashSet<>();
+        FunctionalStream.iterateLong(0, 10)
+                .map(l -> l * 2)
+                .distinct(distinctionSet)
+                .map(l -> l * 2)
+                .distinct(distinctionSet)
+                .forEach(System.out::println);
     }
 
     private static void test14() {

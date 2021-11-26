@@ -38,19 +38,36 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     }
 
     public <K> FunctionalStream<K> map(Function<? super T, K> mapper) {
-        FunctionalStreamImpl<K> result = new FunctionalStreamImpl<>(this);
-        result.operations.add(mapper);
-        return result;
+        /*
+        boolean shouldCreateNew = operations.isEmpty() || !(operations.get(operations.size() - 1) instanceof Function);
+        if (shouldCreateNew && false) {
+            FunctionalStreamImpl<K> result = new FunctionalStreamImpl<>(this);
+            result.operations.add(mapper);
+            return result;
+        } else {
+
+        }
+         */
+        virtualIndex++;
+        operations.add(mapper);
+        return (FunctionalStream<K>) this;
     }
 
     @Override
     public <K> FunctionalStream<K> flatMap(Function<? super T, FunctionalStream<K>> mapper) {
-        FunctionalStreamImpl<K> result = new FunctionalStreamImpl<>(this);
+        /*FunctionalStreamImpl<K> result = new FunctionalStreamImpl<>(this);
         result.operations.add((Predicate<T>) t -> {
             otherStreamSources.computeIfAbsent(index, k -> new ArrayList<>()).add(mapper.apply(t));
             return false;
         });
-        return result;
+        return result;*/
+
+        virtualIndex++;
+        operations.add((Predicate<T>) t -> {
+            otherStreamSources.computeIfAbsent(index, k -> new ArrayList<>()).add(mapper.apply(t));
+            return false;
+        });
+        return (FunctionalStream<K>) this;
     }
 
     @Override
@@ -103,6 +120,40 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     }
 
     @Override
+    public Spliterator<T> spliterator() {
+        return new Spliterator<T>() {
+            @Override
+            public boolean tryAdvance(Consumer<? super T> action) {
+                if (hasNext()) {
+                    try {
+                        action.accept(nextElement());
+                        return true;
+                    } catch (NoResultException e) {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            }
+
+            @Override
+            public Spliterator<T> trySplit() {
+                return null;
+            }
+
+            @Override
+            public long estimateSize() {
+                return Long.MAX_VALUE;
+            }
+
+            @Override
+            public int characteristics() {
+                return ORDERED;
+            }
+        };
+    }
+
+    @Override
     public Stream<T> toStream() {
         return StreamSupport.stream(spliterator(), false);
     }
@@ -121,7 +172,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     @Override
     public void forEach(Consumer<? super T> consumer) {
-        iterator().forEachRemaining(consumer);
+        spliterator().forEachRemaining(consumer);
         onFinish.forEach(Runnable::run);
     }
 

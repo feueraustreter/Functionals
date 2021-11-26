@@ -498,7 +498,22 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     default FunctionalStream<T> distinct() {
         Set<T> set = new HashSet<>();
-        return filter(set::add);
+        return distinct(set);
+    }
+
+    /**
+     * Retain every unique element of this {@link FunctionalStream}.
+     * It uses a {@link HashSet} to check if the current element at
+     * hand was already seen or not. Therefore this implementation
+     * needs O(n) memory, where n is the size of the {@link FunctionalStream}.
+     *
+     * @param distinctionSet the {@link Set} to use for checking if the current element at hand was already seen or not
+     * @return the new {@link FunctionalStream}
+     * @see Stream#distinct() for more information regarding this method
+     * @see #filter(Predicate) for more information regarding this method
+     */
+    default FunctionalStream<T> distinct(Set<T> distinctionSet) {
+        return filter(distinctionSet::add);
     }
 
     // TODO: JavaDoc
