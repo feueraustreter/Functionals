@@ -37,6 +37,15 @@ public class Test {
         // test13();
         // test14();
         // test15();
+        test16();
+    }
+
+    private static void test16() {
+        FunctionalStream.iterateLong(0, 2)
+                .peek(l -> System.out.println("peek: " + l))
+                .flatMap(l -> FunctionalStream.iterateLong(l, l + 2))
+                // .filter(l -> l % 2 == 0)
+                .forEach(System.out::println);
     }
 
     private static void test15() {

@@ -38,49 +38,40 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     }
 
     public <K> FunctionalStream<K> map(Function<? super T, K> mapper) {
-        /*
         boolean shouldCreateNew = operations.isEmpty() || !(operations.get(operations.size() - 1) instanceof Function);
         if (shouldCreateNew && false) {
             FunctionalStreamImpl<K> result = new FunctionalStreamImpl<>(this);
             result.operations.add(mapper);
             return result;
         } else {
-
+            virtualIndex++;
+            operations.add(mapper);
+            return (FunctionalStream<K>) this;
         }
-         */
-        virtualIndex++;
-        operations.add(mapper);
-        return (FunctionalStream<K>) this;
     }
 
     @Override
     public <K> FunctionalStream<K> flatMap(Function<? super T, FunctionalStream<K>> mapper) {
-        /*FunctionalStreamImpl<K> result = new FunctionalStreamImpl<>(this);
+        FunctionalStreamImpl<K> result = new FunctionalStreamImpl<>(this);
         result.operations.add((Predicate<T>) t -> {
             otherStreamSources.computeIfAbsent(index, k -> new ArrayList<>()).add(mapper.apply(t));
             return false;
         });
-        return result;*/
-
-        virtualIndex++;
-        operations.add((Predicate<T>) t -> {
-            otherStreamSources.computeIfAbsent(index, k -> new ArrayList<>()).add(mapper.apply(t));
-            return false;
-        });
-        return (FunctionalStream<K>) this;
+        return result;
     }
 
     @Override
     public FunctionalStream<T> filter(Predicate<? super T> filter) {
-        virtualIndex++;
-        operations.add(filter);
-        return this;
-
-        /*
-        FunctionalStreamImpl<T> result = new FunctionalStreamImpl<>(this);
-        result.operations.add(filter);
-        return result;
-         */
+        boolean shouldCreateNew = operations.isEmpty() || !(operations.get(operations.size() - 1) instanceof Predicate);
+        if (shouldCreateNew) {
+            FunctionalStreamImpl<T> result = new FunctionalStreamImpl<>(this);
+            result.operations.add(filter);
+            return result;
+        } else {
+            virtualIndex++;
+            operations.add(filter);
+            return this;
+        }
     }
 
     @Override
@@ -189,7 +180,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     @Override
     public boolean hasNext() {
-        return !otherStreamSources.isEmpty() || streamSource.hasNext();
+        return otherStreamSources.values().stream().flatMap(Collection::stream).anyMatch(FunctionalStream::hasNext) || streamSource.hasNext();
     }
 
     @Override
@@ -207,7 +198,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
                         continue;
                     }
                     FunctionalStream<?> selectedStream = null;
-                    for (int j = otherStreams.size() - 1; j >= 0; j--) {
+                    for (int j = 0; j < otherStreams.size(); j++) {
                         if (otherStreams.get(j).hasNext()) {
                             selectedStream = otherStreams.get(j);
                             break;
