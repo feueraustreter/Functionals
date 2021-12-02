@@ -50,11 +50,6 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         }
     }
 
-    @FunctionalInterface
-    private interface FlatMapConsumer<T> {
-        void accept(T t);
-    }
-
     @Override
     public <K> FunctionalStream<K> flatMap(Function<? super T, FunctionalStream<K>> mapper) {
         FunctionalStreamImpl<K> result = new FunctionalStreamImpl<>(this);
@@ -256,33 +251,30 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         }
     }
 
+    @FunctionalInterface
+    private interface FlatMapConsumer<T> {
+        void accept(T t);
+    }
+
     private Result createResult(Object current, int from, int to) {
         if (from == to) {
             return new Result(current);
         }
         for (int i = from; i < to; i++) {
             Object operation = operations.get(i);
-            current = applySingle(operation, current);
-            if (current == null) {
+            if (operation instanceof Function) {
+                Function function = (Function) operation;
+                current = function.apply(current);
+            } else if (operation instanceof Predicate) {
+                Predicate predicate = (Predicate) operation;
+                if (!predicate.test(current)) {
+                    return null;
+                }
+            } else if (operation instanceof FlatMapConsumer) {
+                ((FlatMapConsumer) operation).accept(current);
                 return null;
             }
         }
         return new Result(current);
-    }
-
-    private Object applySingle(Object operation, Object current) {
-        if (operation instanceof Function) {
-            Function function = (Function) operation;
-            current = function.apply(current);
-        } else if (operation instanceof Predicate) {
-            Predicate predicate = (Predicate) operation;
-            if (!predicate.test(current)) {
-                return null;
-            }
-        } else if (operation instanceof FlatMapConsumer) {
-            ((FlatMapConsumer) operation).accept(current);
-            return null;
-        }
-        return current;
     }
 }
