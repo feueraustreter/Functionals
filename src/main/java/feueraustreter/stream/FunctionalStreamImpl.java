@@ -39,7 +39,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     public <K> FunctionalStream<K> map(Function<? super T, K> mapper) {
         boolean shouldCreateNew = operations.isEmpty() || !(operations.get(operations.size() - 1) instanceof Function);
-        if (shouldCreateNew && false) {
+        if (shouldCreateNew) {
             FunctionalStreamImpl<K> result = new FunctionalStreamImpl<>(this);
             result.operations.add(mapper);
             return result;
@@ -50,12 +50,16 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         }
     }
 
+    @FunctionalInterface
+    private interface FlatMapConsumer<T> {
+        void accept(T t);
+    }
+
     @Override
     public <K> FunctionalStream<K> flatMap(Function<? super T, FunctionalStream<K>> mapper) {
         FunctionalStreamImpl<K> result = new FunctionalStreamImpl<>(this);
-        result.operations.add((Predicate<T>) t -> {
-            otherStreamSources.computeIfAbsent(index, k -> new ArrayList<>()).add(mapper.apply(t));
-            return false;
+        result.operations.add((FlatMapConsumer<T>) t -> {
+            otherStreamSources.computeIfAbsent(result.index, k -> new ArrayList<>()).add(mapper.apply(t));
         });
         return result;
     }
@@ -185,8 +189,11 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     @Override
     public T nextElement() {
+        if (virtualIndex != operations.size()) {
+            throw new IllegalStateException("Cannot call nextElement() before all operations have been applied");
+        }
         while (true) {
-            if (!hasNext()) {
+            if (!hasNext() || isClosed()) {
                 throw new NoResultException();
             }
             boolean fromStart = false;
@@ -207,7 +214,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
                     if (selectedStream == null) {
                         continue;
                     }
-                    Result result = createResult(selectedStream.nextElement(), i + 1, virtualIndex);
+                    Result result = createResult(selectedStream.nextElement(), i, operations.size());
                     if (result == null) {
                         fromStart = true;
                         break;
@@ -225,7 +232,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
             } catch (NoSuchElementException e) {
                 throw new NoResultException(e.getMessage(), e);
             }
-            Result result = createResult(object, 0, virtualIndex);
+            Result result = createResult(object, 0, operations.size());
             if (result == null) {
                 continue;
             }
@@ -250,18 +257,32 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     }
 
     private Result createResult(Object current, int from, int to) {
+        if (from == to) {
+            return new Result(current);
+        }
         for (int i = from; i < to; i++) {
             Object operation = operations.get(i);
-            if (operation instanceof Function) {
-                Function function = (Function) operation;
-                current = function.apply(current);
-            } else if (operation instanceof Predicate) {
-                Predicate predicate = (Predicate) operation;
-                if (!predicate.test(current)) {
-                    return null;
-                }
+            current = applySingle(operation, current);
+            if (current == null) {
+                return null;
             }
         }
         return new Result(current);
+    }
+
+    private Object applySingle(Object operation, Object current) {
+        if (operation instanceof Function) {
+            Function function = (Function) operation;
+            current = function.apply(current);
+        } else if (operation instanceof Predicate) {
+            Predicate predicate = (Predicate) operation;
+            if (!predicate.test(current)) {
+                return null;
+            }
+        } else if (operation instanceof FlatMapConsumer) {
+            ((FlatMapConsumer) operation).accept(current);
+            return null;
+        }
+        return current;
     }
 }

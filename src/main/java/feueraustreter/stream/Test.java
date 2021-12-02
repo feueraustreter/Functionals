@@ -14,10 +14,7 @@
 
 package feueraustreter.stream;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -37,14 +34,60 @@ public class Test {
         // test13();
         // test14();
         // test15();
-        test16();
+        // test16();
+        // test17();
+        // test18();
+        // test19();
+        test20();
+    }
+
+    private static void test20() {
+        List<String> s = new ArrayList<>();
+        s.add("aa");
+        s.add("bb");
+        s.add("cc");
+        s.add("dd");
+        s.add("ee");
+        s.add("ff");
+        s.add("gg");
+        s.add("hh");
+        s.add("ii");
+        FunctionalStream.of(s)
+                .forkingMap(t -> Math.random() >= 0.5, String::toUpperCase, String::toLowerCase)
+                .map(t -> t.split(""))
+                // .peek(t -> System.out.println(Arrays.toString(t)))
+                .flatMap(FunctionalStream::of)
+                .distinct()
+                .forEach(System.out::println);
+    }
+
+    private static void test19() {
+        FunctionalStream.generate(Math::random)
+                .map(d -> d * 10)
+                .map(Double::intValue)
+                .distinct()
+                .take(6)
+                .forEach(System.out::println);
+    }
+
+    private static void test18() {
+        FunctionalStream.iterateLong(1, 100000000L)
+                .scan(Long::sum)
+                // .forEach(System.out::println);
+                .eval();
+    }
+
+    private static void test17() {
+        FunctionalStream.iterateLong(1, 21)
+                .scan((a, b) -> a * b)
+                .forEach(System.out::println);
     }
 
     private static void test16() {
         FunctionalStream.iterateLong(0, 2)
                 .peek(l -> System.out.println("peek: " + l))
                 .flatMap(l -> FunctionalStream.iterateLong(l, l + 2))
-                // .filter(l -> l % 2 == 0)
+                .filter(l -> l % 2 == 0)
                 .forEach(System.out::println);
     }
 
