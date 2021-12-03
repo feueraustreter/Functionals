@@ -334,7 +334,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     static <K> FunctionalStream<K> infinite(K element) {
-        return new FunctionalStreamImpl<K>(new Iterator<K>() {
+        return new FunctionalStreamImpl<>(new Iterator<K>() {
             @Override
             public boolean hasNext() {
                 return true;
@@ -343,6 +343,38 @@ public interface FunctionalStream<T> extends Iterable<T> {
             @Override
             public K next() {
                 return element;
+            }
+        });
+    }
+
+    static <K> FunctionalStream<K> random(Random random, Function<Random, K> generator) {
+        return new FunctionalStreamImpl<>(new Iterator<K>() {
+            @Override
+            public boolean hasNext() {
+                return true;
+            }
+
+            @Override
+            public K next() {
+                return generator.apply(random);
+            }
+        });
+    }
+
+    static <K> FunctionalStream<K> random(Random random, Function<Random, K> generator, long count) {
+        AtomicLong remaining = new AtomicLong(count);
+        return new FunctionalStreamImpl<>(new Iterator<K>() {
+            @Override
+            public boolean hasNext() {
+                return remaining.get() > 0;
+            }
+
+            @Override
+            public K next() {
+                if (remaining.getAndDecrement() <= 0) {
+                    throw new NoSuchElementException();
+                }
+                return generator.apply(random);
             }
         });
     }
@@ -789,11 +821,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
         }
         AtomicLong current = new AtomicLong(0L);
         return filter(t -> {
-            if (current.getAndIncrement() < count) {
+            if (current.incrementAndGet() < count) {
                 return true;
             }
             close();
-            return false;
+            return true;
         });
     }
 
@@ -815,10 +847,10 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     // TODO: JavaDoc
     default FunctionalStream<T> skipWhile(Predicate<? super T> predicate) {
-        AtomicBoolean skip = new AtomicBoolean(true);
+        AtomicBoolean skip = new AtomicBoolean(false);
         return filter(t -> {
             if (skip.get()) {
-                skip.set(predicate.test(t));
+                skip.set(!predicate.test(t));
             }
             return skip.get();
         });
@@ -858,7 +890,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     // TODO: JavaDoc
     default FunctionalStream<T> keepWhile(Predicate<T> predicate) {
-        return dropWhile(predicate.negate()).takeWhile(predicate);
+        return dropWhile(predicate).takeWhile(predicate.negate());
     }
 
     /**

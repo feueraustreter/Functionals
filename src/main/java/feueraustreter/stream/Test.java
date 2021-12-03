@@ -38,7 +38,15 @@ public class Test {
         // test17();
         // test18();
         // test19();
-        test20();
+        // test20();
+        test21();
+    }
+
+    private static void test21() {
+        FunctionalStream.random(new Random(), random -> random.nextInt(10))
+                .distinct()
+                .take(10)
+                .forEach(System.out::println);
     }
 
     private static void test20() {
