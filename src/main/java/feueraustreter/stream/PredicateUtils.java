@@ -42,5 +42,4 @@ public class PredicateUtils {
     public static Predicate<Double> less(Double number) {
         return current -> current < number;
     }
-
 }

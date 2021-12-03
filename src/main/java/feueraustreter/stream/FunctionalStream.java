@@ -433,6 +433,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     <K> FunctionalStream<K> flatMap(Function<? super T, FunctionalStream<K>> mapper);
 
+    // TODO: JavaDoc
+    default <K> FunctionalStream<K> flatten(Function<? super T, FunctionalStream<K>> mapper) {
+        return flatMap(mapper);
+    }
+
     /**
      * Convert a {@link FunctionalStream} of Arrays to a {@link FunctionalStream}
      * by applying every element of the containing {@link FunctionalStream} to
@@ -444,6 +449,31 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Stream#flatMap(Function) for more information regarding this method
      */
     default <K> FunctionalStream<K> flatArrayMap(Function<? super T, K[]> mapper) {
+        return flatMap(t -> FunctionalStream.of(mapper.apply(t)));
+    }
+
+    // TODO: JavaDoc
+    default <K> FunctionalStream<K> flatStreamMap(Function<? super T, Stream<K>> mapper) {
+        return flatMap(t -> FunctionalStream.of(mapper.apply(t)));
+    }
+
+    // TODO: JavaDoc
+    default <K> FunctionalStream<K> flatIteratorMap(Function<? super T, Iterator<K>> mapper) {
+        return flatMap(t -> FunctionalStream.of(mapper.apply(t)));
+    }
+
+    // TODO: JavaDoc
+    default <K> FunctionalStream<K> flatIterableMap(Function<? super T, Iterable<K>> mapper) {
+        return flatMap(t -> FunctionalStream.of(mapper.apply(t)));
+    }
+
+    // TODO: JavaDoc
+    default <K> FunctionalStream<K> flatCollectionMap(Function<? super T, Collection<K>> mapper) {
+        return flatMap(t -> FunctionalStream.of(mapper.apply(t)));
+    }
+
+    // TODO: JavaDoc
+    default <K, V> FunctionalStream<Map.Entry<K, V>> flatMapMap(Function<? super T, Map<K, V>> mapper) {
         return flatMap(t -> FunctionalStream.of(mapper.apply(t)));
     }
 
@@ -620,6 +650,18 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     /**
+     * Retain any element in this {@link FunctionalStream} that is not
+     * {@code null} and of type 'type'.
+     *
+     * @param <K>  the new type of the {@link FunctionalStream}
+     * @param type the {@link Class} type to retain in the {@link FunctionalStream}
+     * @return the new {@link FunctionalStream}
+     */
+    default <K> FunctionalStream<K> as(@NonNull Class<K> type) {
+        return ofType(type);
+    }
+
+    /**
      * Apply some kind of mapping to this {@link FunctionalStream} outside
      * this caller. It can be used by an API to template a specific mapping
      * and provide it as an method to use by the user.
@@ -647,6 +689,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
         });
     }
 
+    // TODO: JavaDoc
+    default FunctionalStream<T> each(Consumer<? super T> consumer) {
+        return peek(consumer);
+    }
+
     default FunctionalStream<T> peek(Consumer<? super T> consumer, Predicate<? super T> condition) {
         return filter(t -> {
             if (condition.test(t)) consumer.accept(t);
@@ -655,8 +702,18 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     // TODO: JavaDoc
+    default FunctionalStream<T> each(Consumer<? super T> consumer, Predicate<? super T> condition) {
+        return peek(consumer, condition);
+    }
+
+    // TODO: JavaDoc
     default FunctionalStream<T> higherOrderPeek(HigherOrderConsumer<? super T> higherOrderPeek) {
         return peek(t -> higherOrderPeek.apply(t).accept(t));
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> higherOrderEach(HigherOrderConsumer<? super T> higherOrderEach) {
+        return higherOrderPeek(higherOrderEach);
     }
 
     /**
@@ -671,13 +728,28 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     // TODO: JavaDoc
+    default FunctionalStream<T> each(Collection<? super T> collection) {
+        return peek(collection);
+    }
+
+    // TODO: JavaDoc
     default FunctionalStream<T> inline(Runnable runnable) {
         return peek(ignored -> runnable.run());
     }
 
     // TODO: JavaDoc
+    default FunctionalStream<T> each(Runnable runnable) {
+        return inline(runnable);
+    }
+
+    // TODO: JavaDoc
     default FunctionalStream<T> inline(Runnable runnable, Predicate<? super T> condition) {
         return peek(ignored -> runnable.run(), condition);
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> each(Runnable runnable, Predicate<? super T> condition) {
+        return inline(runnable, condition);
     }
 
     /**
@@ -690,6 +762,17 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     default FunctionalStream<T> take(long count) {
         return limit(count);
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> takeWhile(Predicate<T> predicate) {
+        AtomicBoolean skip = new AtomicBoolean(false);
+        return filter(t -> {
+            if (!skip.get()) {
+                skip.set(!predicate.test(t));
+            }
+            return skip.get();
+        });
     }
 
     /**
@@ -730,6 +813,33 @@ public interface FunctionalStream<T> extends Iterable<T> {
         return filter(t -> current.incrementAndGet() > count);
     }
 
+    // TODO: JavaDoc
+    default FunctionalStream<T> skipWhile(Predicate<? super T> predicate) {
+        AtomicBoolean skip = new AtomicBoolean(true);
+        return filter(t -> {
+            if (skip.get()) {
+                skip.set(predicate.test(t));
+            }
+            return skip.get();
+        });
+    }
+
+    /**
+     * Skip elements of this {@link FunctionalStream} until the
+     * {@link Predicate} returns true.
+     *
+     * @param count the skipping count
+     * @return the new {@link FunctionalStream}
+     */
+    default FunctionalStream<T> drop(long count) {
+        return skip(count);
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> dropWhile(Predicate<? super T> predicate) {
+        return skipWhile(predicate);
+    }
+
     /**
      * Keep a portion of this {@link FunctionalStream} by skipping
      * n elements and retaining n elements afterwards. This can be
@@ -744,6 +854,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
             throw new IllegalArgumentException("from is smaller than to");
         }
         return skip(from).limit(to - from);
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> keepWhile(Predicate<T> predicate) {
+        return dropWhile(predicate.negate()).takeWhile(predicate);
     }
 
     /**
@@ -1181,6 +1296,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
         return map(floatFunction).reduce(0.0F, Float::sum);
     }
 
+    // TODO: JavaDoc
+    default float floatSum() {
+        return floatSum(Float.class::cast);
+    }
+
     /**
      * Terminate and reduce this {@link FunctionalStream} to
      * a {@link Float}. The {@link Function} will map every
@@ -1194,6 +1314,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
         return map(floatFunction).reduce(identity, Float::sum);
     }
 
+    // TODO: JavaDoc
+    default float floatSum(float identity) {
+        return floatSum(Float.class::cast, identity);
+    }
+
     /**
      * Terminate and reduce this {@link FunctionalStream} to
      * a {@link Float}. The {@link Function} will map every
@@ -1204,6 +1329,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     default float floatMultiplication(Function<T, Float> floatFunction) {
         return map(floatFunction).reduce(1.0F, (a, b) -> a * b);
+    }
+
+    // TODO: JavaDoc
+    default float floatMultiplication() {
+        return floatMultiplication(Float.class::cast);
     }
 
     /**
@@ -1219,6 +1349,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
         return map(floatFunction).reduce(identity, (a, b) -> a * b);
     }
 
+    // TODO: JavaDoc
+    default float floatMultiplication(float identity) {
+        return floatMultiplication(Float.class::cast, identity);
+    }
+
     /**
      * Terminate and reduce this {@link FunctionalStream} to
      * a {@link Integer}. The {@link Function} will map every
@@ -1229,6 +1364,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     default int integerSum(Function<T, Integer> integerFunction) {
         return map(integerFunction).reduce(0, Integer::sum);
+    }
+
+    // TODO: JavaDoc
+    default int integerSum() {
+        return integerSum(Integer.class::cast);
     }
 
     /**
@@ -1244,6 +1384,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
         return map(integerFunction).reduce(identity, Integer::sum);
     }
 
+    // TODO: JavaDoc
+    default int integerSum(int identity) {
+        return integerSum(Integer.class::cast, identity);
+    }
+
     /**
      * Terminate and reduce this {@link FunctionalStream} to
      * a {@link Integer}. The {@link Function} will map every
@@ -1252,8 +1397,13 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @param integerFunction the {@link Function} to produce the {@link Integer}'s
      * @return the multiplication of every {@link Integer}
      */
-    default float integerMultiplication(Function<T, Integer> integerFunction) {
+    default int integerMultiplication(Function<T, Integer> integerFunction) {
         return map(integerFunction).reduce(1, (a, b) -> a * b);
+    }
+
+    // TODO: JavaDoc
+    default int integerMultiplication() {
+        return integerMultiplication(Integer.class::cast);
     }
 
     /**
@@ -1265,8 +1415,13 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @param identity        the identity value for the reduction
      * @return the multiplication of every {@link Integer}
      */
-    default float integerMultiplication(Function<T, Integer> integerFunction, int identity) {
+    default int integerMultiplication(Function<T, Integer> integerFunction, int identity) {
         return map(integerFunction).reduce(identity, (a, b) -> a * b);
+    }
+
+    // TODO: JavaDoc
+    default int integerMultiplication(int identity) {
+        return integerMultiplication(Integer.class::cast, identity);
     }
 
     /**
@@ -1279,6 +1434,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     default double doubleSum(Function<T, Double> doubleFunction) {
         return map(doubleFunction).reduce(0.0D, Double::sum);
+    }
+
+    // TODO: JavaDoc
+    default double doubleSum() {
+        return doubleSum(Double.class::cast);
     }
 
     /**
@@ -1294,6 +1454,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
         return map(doubleFunction).reduce(identity, Double::sum);
     }
 
+    // TODO: JavaDoc
+    default double doubleSum(double identity) {
+        return doubleSum(Double.class::cast, identity);
+    }
+
     /**
      * Terminate and reduce this {@link FunctionalStream} to
      * a {@link Double}. The {@link Function} will map every
@@ -1304,6 +1469,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     default double doubleMultiplication(Function<T, Double> doubleFunction) {
         return map(doubleFunction).reduce(0.0D, (a, b) -> a * b);
+    }
+
+    // TODO: JavaDoc
+    default double doubleMultiplication() {
+        return doubleMultiplication(Double.class::cast);
     }
 
     /**
@@ -1319,6 +1489,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
         return map(doubleFunction).reduce(identity, (a, b) -> a * b);
     }
 
+    // TODO: JavaDoc
+    default double doubleMultiplication(double identity) {
+        return doubleMultiplication(Double.class::cast, identity);
+    }
+
     /**
      * Terminate and reduce this {@link FunctionalStream} to
      * a {@link Long}. The {@link Function} will map every
@@ -1329,6 +1504,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     default long longSum(Function<T, Long> longFunction) {
         return map(longFunction).reduce(0L, Long::sum);
+    }
+
+    // TODO: JavaDoc
+    default long longSum() {
+        return longSum(Long.class::cast);
     }
 
     /**
@@ -1344,6 +1524,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
         return map(longFunction).reduce(identity, Long::sum);
     }
 
+    // TODO: JavaDoc
+    default long longSum(long identity) {
+        return longSum(Long.class::cast, identity);
+    }
+
     /**
      * Terminate and reduce this {@link FunctionalStream} to
      * a {@link Long}. The {@link Function} will map every
@@ -1354,6 +1539,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     default long longMultiplication(Function<T, Long> longFunction) {
         return map(longFunction).reduce(1L, (a, b) -> a * b);
+    }
+
+    // TODO: JavaDoc
+    default long longMultiplication() {
+        return longMultiplication(Long.class::cast);
     }
 
     /**
@@ -1367,6 +1557,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     default long longMultiplication(Function<T, Long> longFunction, long identity) {
         return map(longFunction).reduce(identity, (a, b) -> a * b);
+    }
+
+    // TODO: JavaDoc
+    default long longMultiplication(long identity) {
+        return longMultiplication(Long.class::cast, identity);
     }
 
     // TODO: JavaDoc

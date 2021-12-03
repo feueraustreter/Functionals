@@ -56,7 +56,7 @@ public class Test {
                 .forkingMap(t -> Math.random() >= 0.5, String::toUpperCase, String::toLowerCase)
                 .map(t -> t.split(""))
                 // .peek(t -> System.out.println(Arrays.toString(t)))
-                .flatMap(FunctionalStream::of)
+                .flatStreamMap(Arrays::stream)
                 .distinct()
                 .forEach(System.out::println);
     }
