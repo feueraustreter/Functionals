@@ -28,11 +28,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
+import java.util.stream.BaseStream;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public interface FunctionalStream<T> extends Iterable<T> {
+public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
 
     // Extension methods for lombok users, using `@ExtensionMethod(FunctionalStream.class)`
 
@@ -111,14 +112,14 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     /**
-     * Create a {@link FunctionalStream} of an existing {@link Stream}.
+     * Create a {@link FunctionalStream} of an existing {@link BaseStream}.
      *
      * @param <K>    the {@link FunctionalStream} type to use
-     * @param stream the {@link Stream} ElementSource
+     * @param stream the {@link BaseStream} ElementSource
      * @return the new {@link FunctionalStream}
      */
-    static <K> FunctionalStream<K> of(Stream<K> stream) {
-        return new FunctionalStreamImpl<>(stream.iterator());
+    static <T, K extends BaseStream<T, K>> FunctionalStream<T> of(BaseStream<T, K> stream) {
+        return new FunctionalStreamImpl<T>(stream.iterator());
     }
 
     /**
@@ -449,6 +450,12 @@ public interface FunctionalStream<T> extends Iterable<T> {
     <K> FunctionalStream<K> map(Function<? super T, K> mapper);
 
     // TODO: JavaDoc
+    default <K> FunctionalStream<K> indexMap(BiFunction<? super T, Long, K> mapper) {
+        AtomicLong atomicLong = new AtomicLong();
+        return map(current -> mapper.apply(current, atomicLong.getAndIncrement()));
+    }
+
+    // TODO: JavaDoc
     default <K> FunctionalStream<K> higherOrderMap(HigherOrderFunction<T, K> higherOrderMap) {
         return map(t -> higherOrderMap.apply(t).apply(t));
     }
@@ -485,7 +492,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     // TODO: JavaDoc
-    default <K> FunctionalStream<K> flatStreamMap(Function<? super T, Stream<K>> mapper) {
+    default <K, L extends BaseStream<K, L>> FunctionalStream<K> flatStreamMap(Function<? super T, BaseStream<K, L>> mapper) {
         return flatMap(t -> FunctionalStream.of(mapper.apply(t)));
     }
 
@@ -557,6 +564,12 @@ public interface FunctionalStream<T> extends Iterable<T> {
      * @see Stream#filter(Predicate) for more information regarding this method
      */
     FunctionalStream<T> filter(Predicate<? super T> filter);
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> indexFilter(Predicate<Long> filter) {
+        AtomicLong atomicLong = new AtomicLong();
+        return filter(element -> filter.test(atomicLong.getAndIncrement()));
+    }
 
     // TODO: JavaDoc
     default FunctionalStream<T> andFilter(Predicate<? super T>[] filters) {
@@ -798,10 +811,10 @@ public interface FunctionalStream<T> extends Iterable<T> {
 
     // TODO: JavaDoc
     default FunctionalStream<T> takeWhile(Predicate<T> predicate) {
-        AtomicBoolean skip = new AtomicBoolean(false);
+        AtomicBoolean skip = new AtomicBoolean(true);
         return filter(t -> {
-            if (!skip.get()) {
-                skip.set(!predicate.test(t));
+            if (skip.get()) {
+                skip.set(predicate.test(t));
             }
             return skip.get();
         });
@@ -849,8 +862,8 @@ public interface FunctionalStream<T> extends Iterable<T> {
     default FunctionalStream<T> skipWhile(Predicate<? super T> predicate) {
         AtomicBoolean skip = new AtomicBoolean(false);
         return filter(t -> {
-            if (skip.get()) {
-                skip.set(!predicate.test(t));
+            if (!skip.get()) {
+                skip.set(predicate.test(t));
             }
             return skip.get();
         });
@@ -934,7 +947,7 @@ public interface FunctionalStream<T> extends Iterable<T> {
     }
 
     /**
-     * Calls {@link #concat(FunctionalStream)} after {@link #of(Stream)} with the given {@link Stream}.
+     * Calls {@link #concat(FunctionalStream)} after {@link #of(BaseStream)} with the given {@link Stream}.
      *
      * @param other the other {@link Stream}
      * @return the new {@link FunctionalStream}
@@ -1028,6 +1041,12 @@ public interface FunctionalStream<T> extends Iterable<T> {
         return collect(Collectors.toList());
     }
 
+    // TODO: JavaDoc
+    default List<T> toList(List<T> list) {
+        forEach(list::add);
+        return list;
+    }
+
     /**
      * Terminate this {@link FunctionalStream} and collect
      * every element left in this {@link FunctionalStream}
@@ -1037,6 +1056,34 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     default Set<T> toSet() {
         return collect(Collectors.toSet());
+    }
+
+    // TODO: JavaDoc
+    default Set<T> toSet(Set<T> set) {
+        forEach(set::add);
+        return set;
+    }
+
+    // TODO: JavaDoc
+    default Map<T, T> toMap() {
+        return collect(Collectors.toMap(Function.identity(), Function.identity()));
+    }
+
+    // TODO: JavaDoc
+    default <V> Map<T, V> toMap(Function<T, V> valueFunction) {
+        return collect(Collectors.toMap(Function.identity(), valueFunction));
+    }
+
+    // TODO: JavaDoc
+    default Map<T, T> toMap(Map<T, T> map) {
+        forEach(t -> map.put(t, t));
+        return map;
+    }
+
+    // TODO: JavaDoc
+    default <V> Map<T, V> toMap(Map<T, V> map, Function<T, V> valueFunction) {
+        forEach(t -> map.put(t, valueFunction.apply(t)));
+        return map;
     }
 
     /**
@@ -1049,6 +1096,11 @@ public interface FunctionalStream<T> extends Iterable<T> {
      */
     default String joining(String delimiter) {
         return map(Object::toString).collect(Collectors.joining(delimiter));
+    }
+
+    // TODO: JavaDoc
+    default String joining() {
+        return joining("");
     }
 
     /**

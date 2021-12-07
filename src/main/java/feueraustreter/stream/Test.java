@@ -17,6 +17,7 @@ package feueraustreter.stream;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class Test {
 
@@ -39,7 +40,55 @@ public class Test {
         // test18();
         // test19();
         // test20();
-        test21();
+        // test21();
+        // test22();
+        test23();
+    }
+
+    private static void test23() {
+        FunctionalStream.iterateLong(0, 1000000)
+                .toStream()
+                .parallel()
+                .forEach(System.out::println);
+    }
+
+    private static void test22() {
+        String s =
+                "Opmrki wirKx wgLey eyj zsv ampHiv nekh caLs\n" +
+                "Mir osaQ osQq oSqa iamk eglxwegIv ephis osag\n" +
+                "aiRhmk oigo wglsIr nyrk cSls nE WeifiP avai\n" +
+                "wglQmik hew Ivd wglsr iRhixI niHi nekhp wx\n" +
+                "amppMk ryr hirR vylIrh hspgl yrh wTiiv\n" +
+                "ryv oimr Ostjdivfviglir As yrRyixd";
+        List<String> strings = FunctionalStream.of(s)
+                .map(current -> current.split("\n"))
+                .flatStreamMap(Arrays::stream)
+                .map(string -> {
+                    return FunctionalStream.of(string)
+                            .map(String::chars)
+                            .flatStreamMap(Function.identity())
+                            .map(i -> (char) (int) i)
+                            .indexFilter(l -> (l + 1) % 5 == 0)
+                            .map(current -> current + "")
+                            .collect(Collectors.joining(""));
+                })
+                .toList();
+        int length = strings.stream()
+                .map(String::length)
+                .max(Long::compare)
+                .orElse(0);
+        FunctionalStream.generate(l -> l < length, () -> strings)
+                .indexMap((list, l) -> {
+                    return FunctionalStream.of(list)
+                            .forkingMap(
+                                    current -> current.length() <= l,
+                                    current -> ' ',
+                                    current -> current.charAt((int) (long) l)
+                            )
+                            .takeWhile(c -> c >= 'a' && c <= 'z')
+                            .joining();
+                })
+                .forEach(System.out::println);
     }
 
     private static void test21() {
