@@ -46,10 +46,11 @@ public class Test {
     }
 
     private static void test23() {
-        FunctionalStream.iterateLong(0, 1000000)
-                .toStream()
-                .parallel()
-                .forEach(System.out::println);
+        double d = FunctionalStream.random(new Random(), Random::nextGaussian)
+                .limit(1000000)
+                .max()
+                .orElse(0.0D);
+        System.out.println("L: " + d);
     }
 
     private static void test22() {
