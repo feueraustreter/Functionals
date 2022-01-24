@@ -1013,6 +1013,59 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
         throw new UnsupportedOperationException();
     }
 
+    // TODO: JavaDoc
+    default FunctionalStream<T> sorted() {
+        return sorted((o1, o2) -> {
+            if (o1 == null && o2 == null) return 0;
+            if (o1 == null) return -1;
+            if (o2 == null) return 1;
+            Comparable<T> element1 = (Comparable<T>) o1;
+            return element1.compareTo(o2);
+        });
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> sorted(Comparator<? super T> comparator) {
+        return helperMethod(ts -> {
+            ts.sort(comparator);
+            return ts;
+        });
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> reverse() {
+        return helperMethod(ts -> {
+            Collections.reverse(ts);
+            return ts;
+        });
+    }
+
+    default FunctionalStream<T> helperMethod(UnaryOperator<List<T>> listMutator) {
+        FunctionalStream<T> current = this;
+        AtomicReference<List<T>> elements = new AtomicReference<>(null);
+        Runnable elementsCreator = () -> {
+            if (elements.get() != null) {
+                return;
+            }
+            elements.set(new ArrayList<>());
+            current.forEach(elements.get()::add);
+            elements.set(listMutator.apply(elements.get()));
+        };
+        return FunctionalStream.of(new Iterator<T>() {
+            @Override
+            public boolean hasNext() {
+                elementsCreator.run();
+                return !elements.get().isEmpty();
+            }
+
+            @Override
+            public T next() {
+                elementsCreator.run();
+                return elements.get().remove(0);
+            }
+        });
+    }
+
     // Terminating methods
 
     /**

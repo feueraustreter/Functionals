@@ -42,7 +42,17 @@ public class Test {
         // test20();
         // test21();
         // test22();
-        test23();
+        // test23();
+        test24();
+    }
+
+    private static void test24() {
+        FunctionalStream.random(new Random(), random -> random.nextInt(100))
+                .take(10)
+                .sorted()
+                .reverse()
+                .sorted()
+                .forEach(System.out::println);
     }
 
     private static void test23() {
