@@ -14,6 +14,8 @@
 
 package feueraustreter.stream;
 
+import feueraustreter.utils.Pair;
+
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -43,7 +45,19 @@ public class Test {
         // test21();
         // test22();
         // test23();
-        test24();
+        // test24();
+        test25();
+    }
+
+    private static void test25() {
+        FunctionalStream.random(new Random(), random -> random.nextInt(6))
+                .take(100000)
+                .map(t -> t + 1)
+                .makeBuckets(() -> 1L, t -> t + 1L)
+                .map(Pair::of)
+                .map(pair -> pair.getK() * pair.getV())
+                .mapWithSizeOfStream((aLong, aLong2) -> aLong / aLong2)
+                .forEach(System.out::println);
     }
 
     private static void test24() {

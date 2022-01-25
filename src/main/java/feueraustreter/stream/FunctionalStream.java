@@ -19,6 +19,7 @@ import feueraustreter.lambda.HigherOrderFunction;
 import feueraustreter.lambda.HigherOrderPredicate;
 import feueraustreter.lambda.ThrowableFunction;
 import feueraustreter.tryfunction.Try;
+import feueraustreter.utils.Pair;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 
@@ -1013,6 +1014,8 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
         throw new UnsupportedOperationException();
     }
 
+    // Conversion methods for finite streams, as these methods would not return if the stream is infinite
+
     // TODO: JavaDoc
     default FunctionalStream<T> sorted() {
         return sorted((o1, o2) -> {
@@ -1040,6 +1043,7 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
         });
     }
 
+    // TODO: JavaDoc
     default FunctionalStream<T> helperMethod(UnaryOperator<List<T>> listMutator) {
         FunctionalStream<T> current = this;
         AtomicReference<List<T>> elements = new AtomicReference<>(null);
@@ -1060,6 +1064,98 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
 
             @Override
             public T next() {
+                elementsCreator.run();
+                return elements.get().remove(0);
+            }
+        });
+    }
+
+    // TODO: JavaDoc
+    default <V> FunctionalStream<Pair<T, V>> merge(FunctionalStream<V> other) {
+        return zip(other, Pair::new);
+    }
+
+    // TODO: JavaDoc
+    default <V, O> FunctionalStream<V> merge(FunctionalStream<O> other, BiFunction<T, O, V> zipper) {
+        return zip(other, zipper);
+    }
+
+    // TODO: JavaDoc
+    default <V> FunctionalStream<Pair<T, V>> zip(FunctionalStream<V> other) {
+        return zip(other, Pair::new);
+    }
+
+    // TODO: JavaDoc
+    default <V, O> FunctionalStream<V> zip(FunctionalStream<O> other, BiFunction<T, O, V> zipper) {
+        return map(t -> zipper.apply(t, other.nextElement()));
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<Pair<T, Long>> zipWithIndex() {
+        AtomicLong index = new AtomicLong(0);
+        return map(t -> new Pair<>(t, index.getAndIncrement()));
+    }
+
+    // TODO: JavaDoc
+    default <V> FunctionalStream<Map.Entry<T, V>> makeBuckets(Supplier<V> initialValueSupplier, UnaryOperator<V> valueMutator) {
+        FunctionalStream<T> current = this;
+        AtomicReference<Map<T, V>> elements = new AtomicReference<>(null);
+        AtomicReference<List<Map.Entry<T, V>>> elementsList = new AtomicReference<>(null);
+        Runnable elementsCreator = () -> {
+            if (elements.get() != null) {
+                return;
+            }
+            elements.set(new HashMap<>());
+            current.forEach(t -> {
+                Map<T, V> map = elements.get();
+                V value = map.get(t);
+                if (value == null) {
+                    value = initialValueSupplier.get();
+                } else {
+                    value = valueMutator.apply(value);
+                }
+                map.put(t, value);
+            });
+            elementsList.set(new ArrayList<>(elements.get().entrySet()));
+        };
+        return FunctionalStream.of(new Iterator<Map.Entry<T, V>>() {
+            @Override
+            public boolean hasNext() {
+                elementsCreator.run();
+                return !elementsList.get().isEmpty();
+            }
+
+            @Override
+            public Map.Entry<T, V> next() {
+                elementsCreator.run();
+                return elementsList.get().remove(0);
+            }
+        });
+    }
+
+    // TODO: JavaDoc
+    default <K> FunctionalStream<K> mapWithSizeOfStream(BiFunction<T, Long, K> mapper) {
+        FunctionalStream<T> current = this;
+        AtomicReference<List<K>> elements = new AtomicReference<>(null);
+        Runnable elementsCreator = () -> {
+            if (elements.get() != null) {
+                return;
+            }
+            elements.set(new ArrayList<>());
+            List<T> list = current.toList();
+            list.forEach(t -> {
+                elements.get().add(mapper.apply(t, (long) list.size()));
+            });
+        };
+        return FunctionalStream.of(new Iterator<K>() {
+            @Override
+            public boolean hasNext() {
+                elementsCreator.run();
+                return !elements.get().isEmpty();
+            }
+
+            @Override
+            public K next() {
                 elementsCreator.run();
                 return elements.get().remove(0);
             }
