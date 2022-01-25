@@ -199,6 +199,22 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
         });
     }
 
+    static <K> FunctionalStream<K> ofSingle(Supplier<K> supplier) {
+        AtomicBoolean atomicBoolean = new AtomicBoolean(true);
+        return new FunctionalStreamImpl<>(new Iterator<K>() {
+            @Override
+            public boolean hasNext() {
+                return atomicBoolean.get();
+            }
+
+            @Override
+            public K next() {
+                atomicBoolean.set(false);
+                return supplier.get();
+            }
+        });
+    }
+
     /**
      * Returns a sequential ordered {@link FunctionalStream} whose elements are the specified values.
      *
@@ -1005,6 +1021,24 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
     }
 
     // TODO: JavaDoc
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> duplicate(Function<T, Long> duplications) {
+        return flatMap(t -> generate(l -> l <= duplications.apply(t), () -> t));
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<Pair<T, Long>> zipWithIndex() {
+        return zipWithIndex(0L);
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<Pair<T, Long>> zipWithIndex(long startIndex) {
+        AtomicLong index = new AtomicLong(startIndex);
+        return map(t -> new Pair<>(t, index.getAndIncrement()));
+    }
+
+    // TODO: JavaDoc
     default FunctionalStream<T> onClose(Runnable runnable) {
         throw new UnsupportedOperationException();
     }
@@ -1040,32 +1074,139 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
         return helperMethod(ts -> {
             Collections.reverse(ts);
             return ts;
+    default FunctionalStream<T> sorted(Comparator<T> comparator) {
+        FunctionalStream<FunctionalStream<T>> current = batch(1000).map(ts -> ts.sortedViaCollections(comparator));
+        return FunctionalStream.of(new Iterator<FunctionalStream<T>>() {
+            private boolean hasNext = true;
+
+            @Override
+            public boolean hasNext() {
+                return hasNext;
+            }
+
+            @Override
+            public FunctionalStream<T> next() {
+                hasNext = false;
+                return current.reduce((ts, ts2) -> ts.merge(ts2, comparator));
+            }
+        }).flatMap(Function.identity());
+    }
+    // TODO: JavaDoc
+    default FunctionalStream<T> sortedViaBuckets() {
+        return sortedViaBuckets((o1, o2) -> {
+            if (o1 == null && o2 == null) return 0;
+            if (o1 == null) return -1;
+            if (o2 == null) return 1;
+            Comparable<T> element1 = (Comparable<T>) o1;
+            return element1.compareTo(o2);
         });
     }
 
     // TODO: JavaDoc
     default FunctionalStream<T> helperMethod(UnaryOperator<List<T>> listMutator) {
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> sortedViaBuckets(Comparator<T> comparator) {
+        return makeBucketsWithCounts()
+                .map(Pair::of)
+                .duplicate(Pair::getV)
+                .map(Pair::getK);
+    }
+
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> sortedViaCollections() {
+        return sortedViaCollections((o1, o2) -> {
+            if (o1 == null && o2 == null) return 0;
+            if (o1 == null) return -1;
+            if (o2 == null) return 1;
+            Comparable<T> element1 = (Comparable<T>) o1;
+            return element1.compareTo(o2);
+        });
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<T> sortedViaCollections(Comparator<T> comparator) {
         FunctionalStream<T> current = this;
         AtomicReference<List<T>> elements = new AtomicReference<>(null);
         Runnable elementsCreator = () -> {
             if (elements.get() != null) {
                 return;
             }
+            if (elements.get() != null) return;
+            elements.set(new ArrayList<>());
+            current.forEach(elements.get()::add);
+            elements.get().sort(comparator);
+        };
+        return FunctionalStream.ofSingle(() -> {
+            elementsCreator.run();
+            return elements.get();
+        }).flatCollectionMap(Function.identity());
+    }
             elements.set(new ArrayList<>());
             current.forEach(elements.get()::add);
             elements.set(listMutator.apply(elements.get()));
         };
+    // TODO: JavaDoc
+    default FunctionalStream<T> reverse() {
+        FunctionalStream<T> current = this;
+        AtomicReference<List<T>> elements = new AtomicReference<>(null);
+        Runnable elementsCreator = () -> {
+            if (elements.get() != null) return;
+            elements.set(new ArrayList<>());
+            current.forEach(elements.get()::add);
+            Collections.reverse(elements.get());
+        };
+        return FunctionalStream.ofSingle(() -> {
+            elementsCreator.run();
+            return elements.get();
+        }).flatCollectionMap(Function.identity());
+    }
+    // TODO: JavaDoc
+    default FunctionalStream<T> merge(FunctionalStream<T> other, Comparator<T> comparator) {
+        FunctionalStream<T> current = this;
         return FunctionalStream.of(new Iterator<T>() {
+            private AtomicReference<T> elementThis;
+            private AtomicReference<T> elementOther;
+
             @Override
             public boolean hasNext() {
                 elementsCreator.run();
                 return !elements.get().isEmpty();
+                return current.hasNext() || other.hasNext() || elementThis != null || elementOther != null;
             }
 
             @Override
             public T next() {
                 elementsCreator.run();
                 return elements.get().remove(0);
+                if (elementThis == null && current.hasNext()) {
+                    elementThis = new AtomicReference<>(current.nextElement());
+                }
+                if (elementOther == null && other.hasNext()) {
+                    elementOther = new AtomicReference<>(other.nextElement());
+                }
+                if (elementThis != null && elementOther == null) {
+                    T result = elementThis.get();
+                    elementThis = null;
+                    return result;
+                }
+                if (elementThis == null && elementOther != null) {
+                    T result = elementOther.get();
+                    elementOther = null;
+                    return result;
+                }
+                if (elementThis == null) {
+                    throw new NoSuchElementException();
+                }
+                if (comparator.compare(elementThis.get(), elementOther.get()) <= 0) {
+                    T result = elementThis.get();
+                    elementThis = null;
+                    return result;
+                }
+                T result = elementOther.get();
+                elementOther = null;
+                return result;
             }
         });
     }
@@ -1073,6 +1214,22 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
     // TODO: JavaDoc
     default <V> FunctionalStream<Pair<T, V>> merge(FunctionalStream<V> other) {
         return zip(other, Pair::new);
+    default <K> FunctionalStream<K> flatMerge(Function<? super T, FunctionalStream<K>> mapper, Comparator<K> comparator) {
+        FunctionalStream<FunctionalStream<K>> current = map(mapper);
+        return FunctionalStream.of(new Iterator<FunctionalStream<K>>() {
+            private boolean hasNext = true;
+
+            @Override
+            public boolean hasNext() {
+                return hasNext;
+            }
+
+            @Override
+            public FunctionalStream<K> next() {
+                hasNext = false;
+                return current.reduce((ts, ts2) -> ts.merge(ts2, comparator));
+            }
+        }).flatMap(Function.identity());
     }
 
     // TODO: JavaDoc
@@ -1082,24 +1239,41 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
 
     // TODO: JavaDoc
     default <V> FunctionalStream<Pair<T, V>> zip(FunctionalStream<V> other) {
+    default <V> FunctionalStream<Pair<T, V>> merge(FunctionalStream<V> other) {
         return zip(other, Pair::new);
     }
 
     // TODO: JavaDoc
     default <V, O> FunctionalStream<V> zip(FunctionalStream<O> other, BiFunction<T, O, V> zipper) {
         return map(t -> zipper.apply(t, other.nextElement()));
+    default <K, O> FunctionalStream<K> merge(FunctionalStream<O> other, BiFunction<T, O, K> zipper) {
+        return zip(other, zipper);
     }
 
     // TODO: JavaDoc
     default FunctionalStream<Pair<T, Long>> zipWithIndex() {
         AtomicLong index = new AtomicLong(0);
         return map(t -> new Pair<>(t, index.getAndIncrement()));
+    default <V> FunctionalStream<Pair<T, V>> zip(FunctionalStream<V> other) {
+        return zip(other, Pair::new);
     }
 
     // TODO: JavaDoc
     default FunctionalStream<Pair<T, Long>> zipWithIndex(boolean startFromOne) {
         AtomicLong index = new AtomicLong(startFromOne ? 1 : 0);
         return map(t -> new Pair<>(t, index.getAndIncrement()));
+    default <K, O> FunctionalStream<K> zip(FunctionalStream<O> other, BiFunction<T, O, K> zipper) {
+        return map(t -> {
+            try {
+                return zipper.apply(t, other.nextElement());
+            } catch (Exception e) {
+                return zipper.apply(t, null);
+            }
+        });
+    }
+
+    default FunctionalStream<Map.Entry<T, Long>> makeBucketsWithCounts() {
+        return makeBuckets(() -> 1L, count -> count + 1L);
     }
 
     // TODO: JavaDoc
@@ -1111,6 +1285,7 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
             if (elements.get() != null) {
                 return;
             }
+            if (elements.get() != null) return;
             elements.set(new HashMap<>());
             current.forEach(t -> {
                 Map<T, V> map = elements.get();
@@ -1147,6 +1322,7 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
             if (elements.get() != null) {
                 return;
             }
+            if (elements.get() != null) return;
             elements.set(new ArrayList<>());
             List<T> list = current.toList();
             list.forEach(t -> {
@@ -1179,12 +1355,19 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
             try {
                 List<T> list = new ArrayList<>();
                 for (long i = 0; i < batchSize; i++) {
+            if (elements.get() != null) return;
+            List<T> list = new ArrayList<>();
+            for (long i = 0; i < batchSize; i++) {
+                try {
                     list.add(current.nextElement());
+                } catch (Exception e) {
+                    if (i == 0) return;
                 }
                 elements.set(list);
             } catch (Exception e) {
                 // ignore
             }
+            elements.set(list);
         };
         return FunctionalStream.of(new Iterator<FunctionalStream<T>>() {
             @Override
@@ -1218,6 +1401,12 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
     // TODO: JavaDoc
     default void higherOrderForEach(HigherOrderConsumer<? super T> higherOrderForEach) {
         forEach(t -> higherOrderForEach.apply(t).accept(t));
+    }
+
+    default long timeIt() {
+        long start = System.currentTimeMillis();
+        forEach(t -> {});
+        return System.currentTimeMillis() - start;
     }
 
     /**
