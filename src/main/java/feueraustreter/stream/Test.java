@@ -48,7 +48,51 @@ public class Test {
         // test24();
         // test25();
         // test26();
-        test27();
+        // test27();
+        // test28();
+        // test29();
+        // test30();
+        test31();
+        // test32();
+    }
+
+    /*
+    private static void test32() {
+        FunctionalStream.iterateInt(1, 100)
+                .flatMapOther(integer -> FunctionalStream.random(new Random(), random -> random.nextInt(integer)).take(integer))
+                .forEach(System.out::println);
+    }
+     */
+
+    private static void test31() {
+        long time = FunctionalStream.random(new Random(0), random -> random.nextInt(10000))
+                .take(10000000)
+                .sortedViaBucketsWithOptimizedDuplicate() // (100) rnd: 103451ms, 0: 98552ms (10000) 0: > 35 Minuten (unfinished) with optimized flatMap method 4047ms
+                // .sorted() // (100) rnd: 1402ms, 0: 1562ms (10000) 0: 1441ms
+                // .sortedViaCollections() // (100) rnd: 8359ms, 0: 7283ms (10000) 0: 9771ms
+                .timeIt();
+        System.out.println(time + "ms");
+    }
+
+    private static void test30() {
+        FunctionalStream.iterateInt(0, 100)
+                .batch(10)
+                .forEach(integers -> {
+                    System.out.println(integers.scan(Integer::sum).joining(", "));
+                });
+    }
+
+    private static void test29() {
+        FunctionalStream.random(new Random(), random -> random.nextInt(1000000))
+                .take(1000000000)
+                .sorted()
+                .forEach(System.out::println);
+    }
+
+    private static void test28() {
+        FunctionalStream.iterateInt(0, 100, 2)
+                .merge(FunctionalStream.iterateInt(1, 100, 2), Integer::compareTo)
+                .forEach(System.out::println);
     }
 
     private static void test27() {
@@ -62,7 +106,7 @@ public class Test {
                 )
                 .map(d -> Math.round(d * 100000) / 100000.0)
                 .scan(Double::sum)
-                .zipWithIndex(true)
+                .zipWithIndex(1L)
                 .map(pair -> pair.getK() / pair.getV())
                 .map(d -> Math.round(d * 10000000) / 10000000.0)
                 .forEach(System.out::println);
