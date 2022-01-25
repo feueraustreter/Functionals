@@ -1070,10 +1070,6 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
     }
 
     // TODO: JavaDoc
-    default FunctionalStream<T> reverse() {
-        return helperMethod(ts -> {
-            Collections.reverse(ts);
-            return ts;
     default FunctionalStream<T> sorted(Comparator<T> comparator) {
         FunctionalStream<FunctionalStream<T>> current = batch(1000).map(ts -> ts.sortedViaCollections(comparator));
         return FunctionalStream.of(new Iterator<FunctionalStream<T>>() {
@@ -1130,9 +1126,6 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
         FunctionalStream<T> current = this;
         AtomicReference<List<T>> elements = new AtomicReference<>(null);
         Runnable elementsCreator = () -> {
-            if (elements.get() != null) {
-                return;
-            }
             if (elements.get() != null) return;
             elements.set(new ArrayList<>());
             current.forEach(elements.get()::add);
@@ -1171,15 +1164,11 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
 
             @Override
             public boolean hasNext() {
-                elementsCreator.run();
-                return !elements.get().isEmpty();
                 return current.hasNext() || other.hasNext() || elementThis != null || elementOther != null;
             }
 
             @Override
             public T next() {
-                elementsCreator.run();
-                return elements.get().remove(0);
                 if (elementThis == null && current.hasNext()) {
                     elementThis = new AtomicReference<>(current.nextElement());
                 }
@@ -1212,8 +1201,6 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
     }
 
     // TODO: JavaDoc
-    default <V> FunctionalStream<Pair<T, V>> merge(FunctionalStream<V> other) {
-        return zip(other, Pair::new);
     default <K> FunctionalStream<K> flatMerge(Function<? super T, FunctionalStream<K>> mapper, Comparator<K> comparator) {
         FunctionalStream<FunctionalStream<K>> current = map(mapper);
         return FunctionalStream.of(new Iterator<FunctionalStream<K>>() {
@@ -1238,30 +1225,21 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
     }
 
     // TODO: JavaDoc
-    default <V> FunctionalStream<Pair<T, V>> zip(FunctionalStream<V> other) {
     default <V> FunctionalStream<Pair<T, V>> merge(FunctionalStream<V> other) {
         return zip(other, Pair::new);
     }
 
     // TODO: JavaDoc
-    default <V, O> FunctionalStream<V> zip(FunctionalStream<O> other, BiFunction<T, O, V> zipper) {
-        return map(t -> zipper.apply(t, other.nextElement()));
     default <K, O> FunctionalStream<K> merge(FunctionalStream<O> other, BiFunction<T, O, K> zipper) {
         return zip(other, zipper);
     }
 
     // TODO: JavaDoc
-    default FunctionalStream<Pair<T, Long>> zipWithIndex() {
-        AtomicLong index = new AtomicLong(0);
-        return map(t -> new Pair<>(t, index.getAndIncrement()));
     default <V> FunctionalStream<Pair<T, V>> zip(FunctionalStream<V> other) {
         return zip(other, Pair::new);
     }
 
     // TODO: JavaDoc
-    default FunctionalStream<Pair<T, Long>> zipWithIndex(boolean startFromOne) {
-        AtomicLong index = new AtomicLong(startFromOne ? 1 : 0);
-        return map(t -> new Pair<>(t, index.getAndIncrement()));
     default <K, O> FunctionalStream<K> zip(FunctionalStream<O> other, BiFunction<T, O, K> zipper) {
         return map(t -> {
             try {
@@ -1282,9 +1260,6 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
         AtomicReference<Map<T, V>> elements = new AtomicReference<>(null);
         AtomicReference<List<Map.Entry<T, V>>> elementsList = new AtomicReference<>(null);
         Runnable elementsCreator = () -> {
-            if (elements.get() != null) {
-                return;
-            }
             if (elements.get() != null) return;
             elements.set(new HashMap<>());
             current.forEach(t -> {
@@ -1319,9 +1294,6 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
         FunctionalStream<T> current = this;
         AtomicReference<List<K>> elements = new AtomicReference<>(null);
         Runnable elementsCreator = () -> {
-            if (elements.get() != null) {
-                return;
-            }
             if (elements.get() != null) return;
             elements.set(new ArrayList<>());
             List<T> list = current.toList();
@@ -1349,12 +1321,6 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
         FunctionalStream<T> current = this;
         AtomicReference<List<T>> elements = new AtomicReference<>(null);
         Runnable elementsCreator = () -> {
-            if (elements.get() != null) {
-                return;
-            }
-            try {
-                List<T> list = new ArrayList<>();
-                for (long i = 0; i < batchSize; i++) {
             if (elements.get() != null) return;
             List<T> list = new ArrayList<>();
             for (long i = 0; i < batchSize; i++) {
@@ -1363,9 +1329,6 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
                 } catch (Exception e) {
                     if (i == 0) return;
                 }
-                elements.set(list);
-            } catch (Exception e) {
-                // ignore
             }
             elements.set(list);
         };
