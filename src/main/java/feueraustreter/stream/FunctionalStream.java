@@ -1097,6 +1097,12 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
     }
 
     // TODO: JavaDoc
+    default FunctionalStream<Pair<T, Long>> zipWithIndex(boolean startFromOne) {
+        AtomicLong index = new AtomicLong(startFromOne ? 1 : 0);
+        return map(t -> new Pair<>(t, index.getAndIncrement()));
+    }
+
+    // TODO: JavaDoc
     default <V> FunctionalStream<Map.Entry<T, V>> makeBuckets(Supplier<V> initialValueSupplier, UnaryOperator<V> valueMutator) {
         FunctionalStream<T> current = this;
         AtomicReference<Map<T, V>> elements = new AtomicReference<>(null);
@@ -1158,6 +1164,41 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
             public K next() {
                 elementsCreator.run();
                 return elements.get().remove(0);
+            }
+        });
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<FunctionalStream<T>> batch(long batchSize) {
+        FunctionalStream<T> current = this;
+        AtomicReference<List<T>> elements = new AtomicReference<>(null);
+        Runnable elementsCreator = () -> {
+            if (elements.get() != null) {
+                return;
+            }
+            try {
+                List<T> list = new ArrayList<>();
+                for (long i = 0; i < batchSize; i++) {
+                    list.add(current.nextElement());
+                }
+                elements.set(list);
+            } catch (Exception e) {
+                // ignore
+            }
+        };
+        return FunctionalStream.of(new Iterator<FunctionalStream<T>>() {
+            @Override
+            public boolean hasNext() {
+                elementsCreator.run();
+                return elements.get() != null;
+            }
+
+            @Override
+            public FunctionalStream<T> next() {
+                elementsCreator.run();
+                List<T> list = elements.get();
+                elements.set(null);
+                return FunctionalStream.of(list);
             }
         });
     }

@@ -46,7 +46,35 @@ public class Test {
         // test22();
         // test23();
         // test24();
-        test25();
+        // test25();
+        // test26();
+        test27();
+    }
+
+    private static void test27() {
+        FunctionalStream.random(new Random(), random -> random.nextInt(6))
+                .take(100000000)
+                .map(t -> t + 1)
+                .batch(10000)
+                .map(functionalStream -> functionalStream
+                        .mapWithSizeOfStream((aLong, aLong2) -> (double) aLong / aLong2)
+                        .doubleSum()
+                )
+                .map(d -> Math.round(d * 100000) / 100000.0)
+                .scan(Double::sum)
+                .zipWithIndex(true)
+                .map(pair -> pair.getK() / pair.getV())
+                .map(d -> Math.round(d * 10000000) / 10000000.0)
+                .forEach(System.out::println);
+    }
+
+    private static void test26() {
+        double result = FunctionalStream.random(new Random(), random -> random.nextInt(6))
+                .take(100000)
+                .map(t -> t + 1)
+                .mapWithSizeOfStream((aLong, aLong2) -> (double) aLong / aLong2)
+                .doubleSum();
+        System.out.println(result);
     }
 
     private static void test25() {
