@@ -845,6 +845,14 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
         return inline(runnable, condition);
     }
 
+    default FunctionalStream<T> finalizeEach(Runnable runnable) {
+        throw new UnsupportedOperationException("This method is not supported by this implementation");
+    }
+
+    default FunctionalStream<T> detach() {
+        throw new UnsupportedOperationException("This method is not supported by this implementation");
+    }
+
     /**
      * Limit this {@link FunctionalStream} to n elements and retain
      * only those.
@@ -1359,8 +1367,8 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
 
     // TODO: JavaDoc
     default FunctionalStream<FunctionalStream<T>> batch(long batchSize) {
-        // TODO: Implement better batching algorithm (So that the internal Stream is not needed to be evaluated)
         FunctionalStream<T> current = this;
+        AtomicReference<FunctionalStream<T>> currentBatch = new AtomicReference<>(null);
         return FunctionalStream.of(new Iterator<FunctionalStream<T>>() {
             @Override
             public boolean hasNext() {
@@ -1369,8 +1377,16 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
 
             @Override
             public FunctionalStream<T> next() {
-                return FunctionalStream.iterateLong(0, batchSize)
-                        .map(i -> current.nextElement());
+                if (currentBatch.get() != null) {
+                    currentBatch.get().eval();
+                }
+                currentBatch.set(FunctionalStream.iterateLong(0, batchSize)
+                        .map(i -> current.nextElement()));
+                return currentBatch.get().detach();
+            }
+        }).finalizeEach(() -> {
+            if (currentBatch.get() != null) {
+                currentBatch.get().eval();
             }
         });
     }

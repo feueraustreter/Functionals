@@ -13,22 +13,22 @@ import java.util.stream.StreamSupport;
 
 public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
-    private int index = 0;
     private int virtualIndex = 0;
     private AtomicBoolean shortCircuit = new AtomicBoolean(false);
     private Iterator<?> streamSource;
     private List<Object> operations = new ArrayList<>();
     private Set<Runnable> onClose = new HashSet<>();
     private Set<Runnable> onFinish = new HashSet<>();
+    private Set<Runnable> onFinalize = new HashSet<>();
 
     protected FunctionalStreamImpl(FunctionalStreamImpl<?> stream) {
-        this.index = stream.virtualIndex + 1;
         this.virtualIndex = stream.virtualIndex + 1;
         this.shortCircuit = stream.shortCircuit;
         this.streamSource = stream.streamSource;
         this.operations = stream.operations;
         this.onClose = stream.onClose;
         this.onFinish = stream.onFinish;
+        this.onFinalize = stream.onFinalize;
     }
 
     public FunctionalStreamImpl(Iterator<?> streamSource) {
@@ -60,6 +60,20 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
             operations.add(filter);
             return this;
         }
+    }
+
+    @Override
+    public FunctionalStream<T> finalizeEach(Runnable runnable) {
+        onFinalize.add(runnable);
+        return this;
+    }
+
+    @Override
+    public FunctionalStream<T> detach() {
+        FunctionalStreamImpl<T> result = new FunctionalStreamImpl<>(this);
+        result.virtualIndex = virtualIndex;
+        result.operations = new ArrayList<>(operations);
+        return result;
     }
 
     @Override
@@ -173,9 +187,6 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     @Override
     public T nextElement() {
-        if (virtualIndex != operations.size()) {
-            throw new IllegalStateException("Cannot call nextElement() before all operations have been applied");
-        }
         while (true) {
             if (!hasNext() || isClosed()) {
                 throw new NoResultException();
@@ -188,6 +199,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
                 throw new NoResultException(e.getMessage(), e);
             }
             Result result = createResult(object, 0, operations.size());
+            onFinalize.forEach(Runnable::run);
             if (result == null) {
                 continue;
             }
@@ -211,11 +223,6 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         }
     }
 
-    @FunctionalInterface
-    private interface FlatMapConsumer<T> {
-        void accept(T t);
-    }
-
     private Result createResult(Object current, int from, int to) {
         if (from == to) {
             return new Result(current);
@@ -230,9 +237,6 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
                 if (!predicate.test(current)) {
                     return null;
                 }
-            } else if (operation instanceof FlatMapConsumer) {
-                ((FlatMapConsumer) operation).accept(current);
-                return null;
             }
         }
         return new Result(current);

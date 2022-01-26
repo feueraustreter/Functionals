@@ -17,6 +17,7 @@ package feueraustreter.stream;
 import feueraustreter.utils.Pair;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -55,16 +56,27 @@ public class Test {
         // test31();
         // test32();
         test33();
+        // test34();
+    }
+
+    private static void test34() {
+        AtomicInteger counter = new AtomicInteger(0);
+        FunctionalStream.iterateInt(0, 100)
+                .finalizeEach(() -> counter.incrementAndGet())
+                .forEach(System.out::println);
+        System.out.println(counter.get());
     }
 
     private static void test33() {
-        FunctionalStream.iterateLong(0, 1000)
+        FunctionalStream.iterateLong(0, 10)
                 .batch(7)
+                .map(longs -> longs.peek(System.out::println))
                 .forEach(System.out::println);
         long time = FunctionalStream.iterateLong(0, 1000)
-                .batch(7)
+                .batch(700)
                 .timeIt();
         System.out.println(time + "ms");
+
     }
 
     private static void test32() {
