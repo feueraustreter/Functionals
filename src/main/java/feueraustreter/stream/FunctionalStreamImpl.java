@@ -15,7 +15,6 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     private int index = 0;
     private int virtualIndex = 0;
-    private Map<Integer, List<FunctionalStream<?>>> otherStreamSources = new HashMap<>();
     private AtomicBoolean shortCircuit = new AtomicBoolean(false);
     private Iterator<?> streamSource;
     private List<Object> operations = new ArrayList<>();
@@ -25,7 +24,6 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
     protected FunctionalStreamImpl(FunctionalStreamImpl<?> stream) {
         this.index = stream.virtualIndex + 1;
         this.virtualIndex = stream.virtualIndex + 1;
-        this.otherStreamSources = stream.otherStreamSources;
         this.shortCircuit = stream.shortCircuit;
         this.streamSource = stream.streamSource;
         this.operations = stream.operations;
@@ -48,15 +46,6 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
             operations.add(mapper);
             return (FunctionalStream<K>) this;
         }
-    }
-
-    @Override
-    public <K> FunctionalStream<K> flatMap(Function<? super T, FunctionalStream<K>> mapper) {
-        FunctionalStreamImpl<K> result = new FunctionalStreamImpl<>(this);
-        result.operations.add((FlatMapConsumer<T>) t -> {
-            otherStreamSources.computeIfAbsent(result.index, k -> new ArrayList<>()).add(mapper.apply(t));
-        });
-        return result;
     }
 
     @Override
@@ -179,7 +168,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
     @Override
     public boolean hasNext() {
-        return otherStreamSources.values().stream().flatMap(Collection::stream).anyMatch(FunctionalStream::hasNext) || streamSource.hasNext();
+        return streamSource.hasNext();
     }
 
     @Override
@@ -190,35 +179,6 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         while (true) {
             if (!hasNext() || isClosed()) {
                 throw new NoResultException();
-            }
-            boolean fromStart = false;
-
-            if (!otherStreamSources.isEmpty()) {
-                for (int i = virtualIndex; i >= 0; i--) {
-                    List<FunctionalStream<?>> otherStreams = otherStreamSources.get(i);
-                    if (otherStreams == null) {
-                        continue;
-                    }
-                    FunctionalStream<?> selectedStream = null;
-                    for (int j = 0; j < otherStreams.size(); j++) {
-                        if (otherStreams.get(j).hasNext()) {
-                            selectedStream = otherStreams.get(j);
-                            break;
-                        }
-                    }
-                    if (selectedStream == null) {
-                        continue;
-                    }
-                    Result result = createResult(selectedStream.nextElement(), i, operations.size());
-                    if (result == null) {
-                        fromStart = true;
-                        break;
-                    }
-                    return (T) result.value;
-                }
-                if (fromStart) {
-                    continue;
-                }
             }
 
             Object object;

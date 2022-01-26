@@ -52,22 +52,32 @@ public class Test {
         // test28();
         // test29();
         // test30();
-        test31();
+        // test31();
         // test32();
+        test33();
     }
 
-    /*
-    private static void test32() {
-        FunctionalStream.iterateInt(1, 100)
-                .flatMapOther(integer -> FunctionalStream.random(new Random(), random -> random.nextInt(integer)).take(integer))
+    private static void test33() {
+        FunctionalStream.iterateLong(0, 1000)
+                .batch(7)
                 .forEach(System.out::println);
+        long time = FunctionalStream.iterateLong(0, 1000)
+                .batch(7)
+                .timeIt();
+        System.out.println(time + "ms");
     }
-     */
+
+    private static void test32() {
+        FunctionalStream.random(new Random(), random -> random.nextInt(10))
+                .take(1_000_000_000_000L)
+                .sorted()
+                .timeIt();
+    }
 
     private static void test31() {
         long time = FunctionalStream.random(new Random(0), random -> random.nextInt(10000))
-                .take(10000000)
-                .sortedViaBucketsWithOptimizedDuplicate() // (100) rnd: 103451ms, 0: 98552ms (10000) 0: > 35 Minuten (unfinished) with optimized flatMap method 4047ms
+                .take(10_000_000)
+                .sortedViaBuckets() // (100) rnd: 103451ms, 0: 98552ms (10000) 0: > 35 Minuten (unfinished) with optimized flatMap method 4047ms
                 // .sorted() // (100) rnd: 1402ms, 0: 1562ms (10000) 0: 1441ms
                 // .sortedViaCollections() // (100) rnd: 8359ms, 0: 7283ms (10000) 0: 9771ms
                 .timeIt();

@@ -487,10 +487,7 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
      * @return the new {@link FunctionalStream}
      * @see Stream#flatMap(Function) for more information regarding this method
      */
-    <K> FunctionalStream<K> flatMap(Function<? super T, FunctionalStream<K>> mapper);
-
-    // TODO: JavaDoc
-    default <K> FunctionalStream<K> optimizedFlatMap(Function<? super T, FunctionalStream<K>> mapper) {
+    default <K> FunctionalStream<K> flatMap(Function<? super T, FunctionalStream<K>> mapper) {
         FunctionalStream<T> current = this;
         return FunctionalStream.of(new Iterator<K>() {
             private AtomicReference<FunctionalStream<K>> currentStream = null;
@@ -527,10 +524,6 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
         return flatMap(mapper);
     }
 
-    // TODO: JavaDoc
-    default <K> FunctionalStream<K> flattenWithOptimizedFlatMap(Function<? super T, FunctionalStream<K>> mapper) {
-        return optimizedFlatMap(mapper);
-    }
 
     /**
      * Convert a {@link FunctionalStream} of Arrays to a {@link FunctionalStream}
@@ -546,28 +539,9 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
         return flatMap(t -> FunctionalStream.of(mapper.apply(t)));
     }
 
-    /**
-     * Convert a {@link FunctionalStream} of Arrays to a {@link FunctionalStream}
-     * by applying every element of the containing {@link FunctionalStream} to
-     * the new {@link FunctionalStream}.
-     *
-     * @param <K>    the new type of the {@link FunctionalStream}
-     * @param mapper the mapper {@link Function} to use and get the Array to get the data from
-     * @return the new {@link FunctionalStream}
-     * @see Stream#flatMap(Function) for more information regarding this method
-     */
-    default <K> FunctionalStream<K> flatArrayMapWithOptimizedFlatMap(Function<? super T, K[]> mapper) {
-        return optimizedFlatMap(t -> FunctionalStream.of(mapper.apply(t)));
-    }
-
     // TODO: JavaDoc
     default <K, L extends BaseStream<K, L>> FunctionalStream<K> flatStreamMap(Function<? super T, BaseStream<K, L>> mapper) {
         return flatMap(t -> FunctionalStream.of(mapper.apply(t)));
-    }
-
-    // TODO: JavaDoc
-    default <K, L extends BaseStream<K, L>> FunctionalStream<K> flatStreamMapWithOptimizedFlatMap(Function<? super T, BaseStream<K, L>> mapper) {
-        return optimizedFlatMap(t -> FunctionalStream.of(mapper.apply(t)));
     }
 
     // TODO: JavaDoc
@@ -576,18 +550,8 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
     }
 
     // TODO: JavaDoc
-    default <K> FunctionalStream<K> flatIteratorMapWithOptimizedFlatMap(Function<? super T, Iterator<K>> mapper) {
-        return optimizedFlatMap(t -> FunctionalStream.of(mapper.apply(t)));
-    }
-
-    // TODO: JavaDoc
     default <K> FunctionalStream<K> flatIterableMap(Function<? super T, Iterable<K>> mapper) {
         return flatMap(t -> FunctionalStream.of(mapper.apply(t)));
-    }
-
-    // TODO: JavaDoc
-    default <K> FunctionalStream<K> flatIterableMapWithOptimizedFlatMap(Function<? super T, Iterable<K>> mapper) {
-        return optimizedFlatMap(t -> FunctionalStream.of(mapper.apply(t)));
     }
 
     // TODO: JavaDoc
@@ -596,18 +560,8 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
     }
 
     // TODO: JavaDoc
-    default <K> FunctionalStream<K> flatCollectionMapWithOptimizedFlatMap(Function<? super T, Collection<K>> mapper) {
-        return optimizedFlatMap(t -> FunctionalStream.of(mapper.apply(t)));
-    }
-
-    // TODO: JavaDoc
     default <K, V> FunctionalStream<Map.Entry<K, V>> flatMapMap(Function<? super T, Map<K, V>> mapper) {
         return flatMap(t -> FunctionalStream.of(mapper.apply(t)));
-    }
-
-    // TODO: JavaDoc
-    default <K, V> FunctionalStream<Map.Entry<K, V>> flatMapMapWithOptimizedFlatMap(Function<? super T, Map<K, V>> mapper) {
-        return optimizedFlatMap(t -> FunctionalStream.of(mapper.apply(t)));
     }
 
     /**
@@ -1041,24 +995,6 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
     }
 
     /**
-     * Combine this {@link FunctionalStream} with another {@link FunctionalStream}
-     * and return one combined {@link FunctionalStream} containing every element
-     * of both {@link FunctionalStream}.
-     *
-     * @param other the {@link FunctionalStream} to concat with
-     * @return the new {@link FunctionalStream}
-     * @implSpec This operation should not terminate the {@link FunctionalStream} in
-     * any way and work with any other operation done after this.
-     * @implNote This operation is optional and can combine both {@link FunctionalStream}
-     * in any way, preferably this {@link FunctionalStream} before the {@code other}.
-     * If this {@link FunctionalStream} is empty the concat method must be evaluated and
-     * produce a {@link FunctionalStream} of the elements of the inputted {@link FunctionalStream}.
-     */
-    default FunctionalStream<T> concatWithOptimizedFlatMap(FunctionalStream<T> other) {
-        return of(this, other).optimizedFlatMap(ts -> ts);
-    }
-
-    /**
      * Calls {@link #concat(FunctionalStream)} after {@link #of(BaseStream)} with the given {@link Stream}.
      *
      * @param other the other {@link Stream}
@@ -1141,28 +1077,13 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
     }
 
     // TODO: JavaDoc
-    default FunctionalStream<T> duplicateWithOptimizedFlatMap() {
-        return duplicateWithOptimizedFlatMap(1);
-    }
-
-    // TODO: JavaDoc
     default FunctionalStream<T> duplicate(long duplications) {
         return flatMap(t -> generate(l -> l <= duplications, () -> t));
     }
 
     // TODO: JavaDoc
-    default FunctionalStream<T> duplicateWithOptimizedFlatMap(long duplications) {
-        return optimizedFlatMap(t -> generate(l -> l <= duplications, () -> t));
-    }
-
-    // TODO: JavaDoc
     default FunctionalStream<T> duplicate(Function<T, Long> duplications) {
         return flatMap(t -> generate(l -> l <= duplications.apply(t), () -> t));
-    }
-
-    // TODO: JavaDoc
-    default FunctionalStream<T> duplicateWithOptimizedFlatMap(Function<T, Long> duplications) {
-        return optimizedFlatMap(t -> generate(l -> l <= duplications.apply(t), () -> t));
     }
 
     // TODO: JavaDoc
@@ -1200,17 +1121,6 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
     }
 
     // TODO: JavaDoc
-    default FunctionalStream<T> sortedWithOptimizedFlatMap() {
-        return sortedWithOptimizedFlatMap((o1, o2) -> {
-            if (o1 == null && o2 == null) return 0;
-            if (o1 == null) return -1;
-            if (o2 == null) return 1;
-            Comparable<T> element1 = (Comparable<T>) o1;
-            return element1.compareTo(o2);
-        });
-    }
-
-    // TODO: JavaDoc
     default FunctionalStream<T> sorted(Comparator<T> comparator) {
         FunctionalStream<FunctionalStream<T>> current = batch(1000).map(ts -> ts.sortedViaCollections(comparator));
         return FunctionalStream.of(new Iterator<FunctionalStream<T>>() {
@@ -1230,38 +1140,8 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
     }
 
     // TODO: JavaDoc
-    default FunctionalStream<T> sortedWithOptimizedFlatMap(Comparator<T> comparator) {
-        FunctionalStream<FunctionalStream<T>> current = batch(1000).map(ts -> ts.sortedViaCollections(comparator));
-        return FunctionalStream.of(new Iterator<FunctionalStream<T>>() {
-            private boolean hasNext = true;
-
-            @Override
-            public boolean hasNext() {
-                return hasNext;
-            }
-
-            @Override
-            public FunctionalStream<T> next() {
-                hasNext = false;
-                return current.reduce((ts, ts2) -> ts.merge(ts2, comparator));
-            }
-        }).optimizedFlatMap(Function.identity());
-    }
-
-    // TODO: JavaDoc
     default FunctionalStream<T> sortedViaBuckets() {
         return sortedViaBuckets((o1, o2) -> {
-            if (o1 == null && o2 == null) return 0;
-            if (o1 == null) return -1;
-            if (o2 == null) return 1;
-            Comparable<T> element1 = (Comparable<T>) o1;
-            return element1.compareTo(o2);
-        });
-    }
-
-    // TODO: JavaDoc
-    default FunctionalStream<T> sortedViaBucketsWithOptimizedDuplicate() {
-        return sortedViaBucketsWithOptimizedDuplicate((o1, o2) -> {
             if (o1 == null && o2 == null) return 0;
             if (o1 == null) return -1;
             if (o2 == null) return 1;
@@ -1279,27 +1159,8 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
     }
 
     // TODO: JavaDoc
-    default FunctionalStream<T> sortedViaBucketsWithOptimizedDuplicate(Comparator<T> comparator) {
-        return makeBucketsWithCounts()
-                .map(Pair::of)
-                .duplicateWithOptimizedFlatMap(Pair::getV)
-                .map(Pair::getK);
-    }
-
-    // TODO: JavaDoc
     default FunctionalStream<T> sortedViaCollections() {
         return sortedViaCollections((o1, o2) -> {
-            if (o1 == null && o2 == null) return 0;
-            if (o1 == null) return -1;
-            if (o2 == null) return 1;
-            Comparable<T> element1 = (Comparable<T>) o1;
-            return element1.compareTo(o2);
-        });
-    }
-
-    // TODO: JavaDoc
-    default FunctionalStream<T> sortedViaCollectionsWithOptimizedFlatCollectionMap() {
-        return sortedViaCollectionsWithOptimizedFlatCollectionMap((o1, o2) -> {
             if (o1 == null && o2 == null) return 0;
             if (o1 == null) return -1;
             if (o2 == null) return 1;
@@ -1325,22 +1186,6 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
     }
 
     // TODO: JavaDoc
-    default FunctionalStream<T> sortedViaCollectionsWithOptimizedFlatCollectionMap(Comparator<T> comparator) {
-        FunctionalStream<T> current = this;
-        AtomicReference<List<T>> elements = new AtomicReference<>(null);
-        Runnable elementsCreator = () -> {
-            if (elements.get() != null) return;
-            elements.set(new ArrayList<>());
-            current.forEach(elements.get()::add);
-            elements.get().sort(comparator);
-        };
-        return FunctionalStream.ofSingle(() -> {
-            elementsCreator.run();
-            return elements.get();
-        }).flatCollectionMapWithOptimizedFlatMap(Function.identity());
-    }
-
-    // TODO: JavaDoc
     default FunctionalStream<T> reverse() {
         FunctionalStream<T> current = this;
         AtomicReference<List<T>> elements = new AtomicReference<>(null);
@@ -1354,22 +1199,6 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
             elementsCreator.run();
             return elements.get();
         }).flatCollectionMap(Function.identity());
-    }
-
-    // TODO: JavaDoc
-    default FunctionalStream<T> reverseWithOptimizedFlatCollectionMap() {
-        FunctionalStream<T> current = this;
-        AtomicReference<List<T>> elements = new AtomicReference<>(null);
-        Runnable elementsCreator = () -> {
-            if (elements.get() != null) return;
-            elements.set(new ArrayList<>());
-            current.forEach(elements.get()::add);
-            Collections.reverse(elements.get());
-        };
-        return FunctionalStream.ofSingle(() -> {
-            elementsCreator.run();
-            return elements.get();
-        }).flatCollectionMapWithOptimizedFlatMap(Function.identity());
     }
 
     // TODO: JavaDoc
@@ -1434,25 +1263,6 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
                 return current.reduce((ts, ts2) -> ts.merge(ts2, comparator));
             }
         }).flatMap(Function.identity());
-    }
-
-    // TODO: JavaDoc
-    default <K> FunctionalStream<K> flatMergeWithOptimizedFlatMap(Function<? super T, FunctionalStream<K>> mapper, Comparator<K> comparator) {
-        FunctionalStream<FunctionalStream<K>> current = map(mapper);
-        return FunctionalStream.of(new Iterator<FunctionalStream<K>>() {
-            private boolean hasNext = true;
-
-            @Override
-            public boolean hasNext() {
-                return hasNext;
-            }
-
-            @Override
-            public FunctionalStream<K> next() {
-                hasNext = false;
-                return current.reduce((ts, ts2) -> ts.merge(ts2, comparator));
-            }
-        }).optimizedFlatMap(Function.identity());
     }
 
     // TODO: JavaDoc
@@ -1549,33 +1359,18 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
 
     // TODO: JavaDoc
     default FunctionalStream<FunctionalStream<T>> batch(long batchSize) {
+        // TODO: Implement better batching algorithm (So that the internal Stream is not needed to be evaluated)
         FunctionalStream<T> current = this;
-        AtomicReference<List<T>> elements = new AtomicReference<>(null);
-        Runnable elementsCreator = () -> {
-            if (elements.get() != null) return;
-            List<T> list = new ArrayList<>();
-            for (long i = 0; i < batchSize; i++) {
-                try {
-                    list.add(current.nextElement());
-                } catch (Exception e) {
-                    if (i == 0) return;
-                }
-            }
-            elements.set(list);
-        };
         return FunctionalStream.of(new Iterator<FunctionalStream<T>>() {
             @Override
             public boolean hasNext() {
-                elementsCreator.run();
-                return elements.get() != null;
+                return current.hasNext();
             }
 
             @Override
             public FunctionalStream<T> next() {
-                elementsCreator.run();
-                List<T> list = elements.get();
-                elements.set(null);
-                return FunctionalStream.of(list);
+                return FunctionalStream.iterateLong(0, batchSize)
+                        .map(i -> current.nextElement());
             }
         });
     }
@@ -1599,7 +1394,8 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
 
     default long timeIt() {
         long start = System.currentTimeMillis();
-        forEach(t -> {});
+        forEach(t -> {
+        });
         return System.currentTimeMillis() - start;
     }
 
