@@ -192,18 +192,14 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
                 throw new NoResultException();
             }
 
-            Object object;
             try {
-                object = streamSource.next();
+                Result result = createResult(streamSource.next(), operations.size());
+                onFinalize.forEach(Runnable::run);
+                if (result == null) continue;
+                return (T) result.value;
             } catch (NoSuchElementException e) {
                 throw new NoResultException(e.getMessage(), e);
             }
-            Result result = createResult(object, 0, operations.size());
-            onFinalize.forEach(Runnable::run);
-            if (result == null) {
-                continue;
-            }
-            return (T) result.value;
         }
     }
 
@@ -223,11 +219,12 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
         }
     }
 
-    private Result createResult(Object current, int from, int to) {
-        if (from == to) {
+    @SuppressWarnings("rawtypes")
+    private Result createResult(Object current, int to) {
+        if (0 == to) {
             return new Result(current);
         }
-        for (int i = from; i < to; i++) {
+        for (int i = 0; i < to; i++) {
             Object operation = operations.get(i);
             if (operation instanceof Function) {
                 Function function = (Function) operation;

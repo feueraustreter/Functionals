@@ -55,16 +55,15 @@ public class Test {
         // test30();
         // test31();
         // test32();
-        test33();
-        // test34();
+        // test33();
+        test34();
     }
 
     private static void test34() {
-        AtomicInteger counter = new AtomicInteger(0);
         FunctionalStream.iterateInt(0, 100)
-                .finalizeEach(() -> counter.incrementAndGet())
+                .reverse()
+                .sorted()
                 .forEach(System.out::println);
-        System.out.println(counter.get());
     }
 
     private static void test33() {

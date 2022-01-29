@@ -1130,7 +1130,7 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
 
     // TODO: JavaDoc
     default FunctionalStream<T> sorted(Comparator<T> comparator) {
-        FunctionalStream<FunctionalStream<T>> current = batch(1000).map(ts -> ts.sortedViaCollections(comparator));
+        FunctionalStream<FunctionalStream<T>> current = batchViaCollections(1000).map(ts -> ts.sortedViaCollections(comparator));
         return FunctionalStream.of(new Iterator<FunctionalStream<T>>() {
             private boolean hasNext = true;
 
@@ -1387,6 +1387,30 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
         }).finalizeEach(() -> {
             if (currentBatch.get() != null) {
                 currentBatch.get().eval();
+            }
+        });
+    }
+
+    // TODO: JavaDoc
+    default FunctionalStream<FunctionalStream<T>> batchViaCollections(long batchSize) {
+        FunctionalStream<T> current = this;
+        AtomicReference<List<T>> currentBatch = new AtomicReference<>(null);
+        return FunctionalStream.of(new Iterator<FunctionalStream<T>>() {
+            @Override
+            public boolean hasNext() {
+                return current.hasNext();
+            }
+
+            @Override
+            public FunctionalStream<T> next() {
+                if (currentBatch.get() != null) {
+                    currentBatch.get().clear();
+                }
+                currentBatch.set(new ArrayList<>());
+                while (currentBatch.get().size() < batchSize && current.hasNext()) {
+                    currentBatch.get().add(current.nextElement());
+                }
+                return FunctionalStream.of(currentBatch.get());
             }
         });
     }
