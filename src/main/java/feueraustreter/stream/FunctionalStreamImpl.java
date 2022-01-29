@@ -120,6 +120,7 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
                 if (hasNext()) {
                     try {
                         action.accept(nextElement());
+                        onFinalize.forEach(Runnable::run);
                         return true;
                     } catch (NoResultException e) {
                         return false;
@@ -194,8 +195,10 @@ public class FunctionalStreamImpl<T> implements FunctionalStream<T> {
 
             try {
                 Result result = createResult(streamSource.next(), operations.size());
-                onFinalize.forEach(Runnable::run);
-                if (result == null) continue;
+                if (result == null) {
+                    onFinalize.forEach(Runnable::run);
+                    continue;
+                }
                 return (T) result.value;
             } catch (NoSuchElementException e) {
                 throw new NoResultException(e.getMessage(), e);

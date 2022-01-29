@@ -61,7 +61,6 @@ public class Test {
 
     private static void test34() {
         FunctionalStream.iterateInt(0, 100)
-                .reverse()
                 .sorted()
                 .forEach(System.out::println);
     }

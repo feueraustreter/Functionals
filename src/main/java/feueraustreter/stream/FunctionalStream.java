@@ -2062,7 +2062,7 @@ public interface FunctionalStream<T> extends Iterable<T>, AutoCloseable {
         AtomicReference<T> ref = new AtomicReference<>(null);
         AtomicBoolean wasFirst = new AtomicBoolean(true);
         forEach(t -> {
-            if (wasFirst.get()) {
+            if (wasFirst.getAndSet(false)) {
                 ref.set(t);
             } else {
                 ref.set(accumulator.apply(ref.get(), t));
