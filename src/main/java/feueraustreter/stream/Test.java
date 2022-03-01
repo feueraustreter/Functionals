@@ -17,7 +17,6 @@ package feueraustreter.stream;
 import feueraustreter.utils.Pair;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -172,11 +171,11 @@ public class Test {
     private static void test22() {
         String s =
                 "Opmrki wirKx wgLey eyj zsv ampHiv nekh caLs\n" +
-                "Mir osaQ osQq oSqa iamk eglxwegIv ephis osag\n" +
-                "aiRhmk oigo wglsIr nyrk cSls nE WeifiP avai\n" +
-                "wglQmik hew Ivd wglsr iRhixI niHi nekhp wx\n" +
-                "amppMk ryr hirR vylIrh hspgl yrh wTiiv\n" +
-                "ryv oimr Ostjdivfviglir As yrRyixd";
+                        "Mir osaQ osQq oSqa iamk eglxwegIv ephis osag\n" +
+                        "aiRhmk oigo wglsIr nyrk cSls nE WeifiP avai\n" +
+                        "wglQmik hew Ivd wglsr iRhixI niHi nekhp wx\n" +
+                        "amppMk ryr hirR vylIrh hspgl yrh wTiiv\n" +
+                        "ryv oimr Ostjdivfviglir As yrRyixd";
         List<String> strings = FunctionalStream.of(s)
                 .map(current -> current.split("\n"))
                 .flatStreamMap(Arrays::stream)
