@@ -230,3 +230,20 @@ fun <T> FunctionalStream<T>.batchViaCollections(batchSize: Long): FunctionalStre
         }
     })
 }
+
+fun <T> FunctionalStream<T>.iterable(): Iterable<T> {
+    val current = this
+    return object : Iterable<T> {
+        override fun iterator(): Iterator<T> {
+            return object : Iterator<T> {
+                override fun hasNext(): Boolean {
+                    return current.hasNext()
+                }
+
+                override fun next(): T {
+                    return current.nextElement()
+                }
+            }
+        }
+    }
+}

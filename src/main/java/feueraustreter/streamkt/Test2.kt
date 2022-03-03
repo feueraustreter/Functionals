@@ -5,4 +5,8 @@ fun main() {
         .map { it * 2 }
         .filter { it < 5 }
         .forEach { println(it) }
+
+    for (i in of(1, 2, 4, 5).iterable()) {
+
+    }
 }
