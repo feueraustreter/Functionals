@@ -186,7 +186,6 @@ class FunctionalStreamImpl<T>: Iterable<T>, FunctionalStream<T> {
 
     private fun createResult(current: Any, to: Int): Result? {
         var current: Any? = current
-        println(current)
         if (0 == to) {
             return Result(current)
         }

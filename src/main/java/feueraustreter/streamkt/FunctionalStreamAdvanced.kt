@@ -1,12 +1,10 @@
 package feueraustreter.streamkt
 
 import feueraustreter.utils.Pair
-import java.util.*
 import java.util.concurrent.atomic.AtomicReference
-import java.util.function.Function
 
-fun <T: Comparable<T>> FunctionalStream<T>.sorted(comparator: Comparator<T> = Comparator { a, b -> a.compareTo(b)}): FunctionalStream<T> {
-    val current: FunctionalStream<FunctionalStream<T>> = batchViaCollections(1000).map(Function { it.sortedViaCollections(comparator) })
+fun <T : Comparable<T>> FunctionalStream<T>.sorted(comparator: Comparator<T> = Comparator { a, b -> a.compareTo(b) }): FunctionalStream<T> {
+    val current: FunctionalStream<FunctionalStream<T>> = batchViaCollections(1000).map { it.sortedViaCollections(comparator) }
     return of(object : Iterator<FunctionalStream<T>> {
         private var hasNext = true
         override fun hasNext(): Boolean {
@@ -20,10 +18,10 @@ fun <T: Comparable<T>> FunctionalStream<T>.sorted(comparator: Comparator<T> = Co
     }).flatten()
 }
 
-fun <T: Comparable<T>> FunctionalStream<T>.sortedViaCollections(comparator: Comparator<T> = Comparator { a, b -> a.compareTo(b)}): FunctionalStream<T> {
+fun <T : Comparable<T>> FunctionalStream<T>.sortedViaCollections(comparator: Comparator<T> = Comparator { a, b -> a.compareTo(b) }): FunctionalStream<T> {
     val current: FunctionalStream<T> = this
     val elements = AtomicReference<MutableList<T>>(null)
-    val elementsCreator = label@ {
+    val elementsCreator = label@{
         if (elements.get() != null) return@label
         elements.set(ArrayList())
         current.forEach { elements.get()!!.add(it) }
@@ -38,7 +36,7 @@ fun <T: Comparable<T>> FunctionalStream<T>.sortedViaCollections(comparator: Comp
 fun <T> FunctionalStream<T>.reverse(): FunctionalStream<T> {
     val current: FunctionalStream<T> = this
     val elements = AtomicReference<MutableList<T>>(null)
-    val elementsCreator = label@ {
+    val elementsCreator = label@{
         if (elements.get() != null) return@label
         elements.set(ArrayList())
         current.forEach { elements.get()!!.add(it) }
@@ -92,16 +90,16 @@ fun <T> FunctionalStream<T>.merge(other: FunctionalStream<T>, comparator: Compar
     })
 }
 
-fun <T, K> FunctionalStream<T>.flatMerge(mapper: ((T) -> FunctionalStream<K>), comparator: Comparator<K>) {
+fun <T, K> FunctionalStream<T>.flatMerge(mapper: ((T) -> FunctionalStream<K>), comparator: Comparator<K>): FunctionalStream<K> {
     val current = map(mapper)
-    return of(object : Iterator<K> {
+    return of(object : Iterator<FunctionalStream<K>> {
         private var hasNext = true
 
         override fun hasNext(): Boolean {
             return hasNext
         }
 
-        override fun next(): K {
+        override fun next(): FunctionalStream<K> {
             hasNext = false
             return current.reduce { ts, ts2 -> ts.merge(ts2, comparator) }
         }
@@ -109,7 +107,7 @@ fun <T, K> FunctionalStream<T>.flatMerge(mapper: ((T) -> FunctionalStream<K>), c
 }
 
 fun <T, V> FunctionalStream<T>.merge(other: FunctionalStream<V>): FunctionalStream<Pair<T, V>> {
-    return zip(other) { k, v -> feueraustreter.utils.Pair(k, v) }
+    return zip(other) { k, v -> feueraustreter.utils.Pair.of(k, v) }
 }
 
 fun <T, O, K> FunctionalStream<T>.merge(other: FunctionalStream<O>, zipper: ((T, O?) -> K)): FunctionalStream<K> {
@@ -117,7 +115,7 @@ fun <T, O, K> FunctionalStream<T>.merge(other: FunctionalStream<O>, zipper: ((T,
 }
 
 fun <T, V> FunctionalStream<T>.zip(other: FunctionalStream<V>): FunctionalStream<Pair<T, V>> {
-    return zip(other) { k, v -> feueraustreter.utils.Pair(k, v) }
+    return zip(other) { k, v -> feueraustreter.utils.Pair.of(k, v) }
 }
 
 fun <T, O, K> FunctionalStream<T>.zip(other: FunctionalStream<O>, zipper: (T, O?) -> K): FunctionalStream<K> {
@@ -138,7 +136,7 @@ fun <T, V> FunctionalStream<T>.makeBuckets(initialValue: (() -> V), valueMutator
     val current = this
     val elements = AtomicReference<Map<T, V>>(null)
     val elementsList = AtomicReference<MutableList<Map.Entry<T, V>>>(null)
-    val elementsCreator = label@ {
+    val elementsCreator = label@{
         if (elements.get() != null) return@label
         elements.set(HashMap())
         current.forEach { t: T ->
@@ -169,7 +167,7 @@ fun <T, V> FunctionalStream<T>.makeBuckets(initialValue: (() -> V), valueMutator
 fun <T, K> FunctionalStream<T>.mapWithSizeOfStream(mapper: ((T, Long) -> K)): FunctionalStream<K> {
     val current = this
     val elements = AtomicReference<MutableList<K>>(null)
-    val elementsCreator = label@ {
+    val elementsCreator = label@{
         if (elements.get() != null) return@label
         elements.set(ArrayList())
         val list: List<T> = current.toList()
@@ -184,6 +182,51 @@ fun <T, K> FunctionalStream<T>.mapWithSizeOfStream(mapper: ((T, Long) -> K)): Fu
         override fun next(): K {
             elementsCreator()
             return elements.get().removeAt(0)
+        }
+    })
+}
+
+fun <T> FunctionalStream<T>.batch(batchSize: Long): FunctionalStream<FunctionalStream<T>> {
+    val current = this
+    val currentBatch = AtomicReference<FunctionalStream<T>>(null)
+    return of(object : Iterator<FunctionalStream<T>> {
+        override fun hasNext(): Boolean {
+            return current.hasNext()
+        }
+
+        override fun next(): FunctionalStream<T> {
+            if (currentBatch.get() != null) {
+                currentBatch.get().eval()
+            }
+            iterateLong(0, batchSize)
+                .map { current.nextElement() }
+                .let { currentBatch.set(it) }
+            return currentBatch.get().detach()
+        }
+    }).finalizeEach {
+        if (currentBatch.get() != null) {
+            currentBatch.get().eval();
+        }
+    }
+}
+
+fun <T> FunctionalStream<T>.batchViaCollections(batchSize: Long): FunctionalStream<FunctionalStream<T>> {
+    val current = this
+    val currentBatch = AtomicReference<MutableList<T>>(null)
+    return of(object : Iterator<FunctionalStream<T>> {
+        override fun hasNext(): Boolean {
+            return current.hasNext()
+        }
+
+        override fun next(): FunctionalStream<T> {
+            if (currentBatch.get() != null) {
+                currentBatch.get().clear()
+            }
+            currentBatch.set(ArrayList<T>())
+            while (currentBatch.get().size < batchSize && current.hasNext()) {
+                currentBatch.get().add(current.nextElement())
+            }
+            return of(currentBatch.get())
         }
     })
 }
