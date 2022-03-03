@@ -97,8 +97,8 @@ fun <T, R, A> FunctionalStream<T>.collect(collector: Collector<T, A, R>): R {
 }
 
 fun <T, R, A> FunctionalStream<T>.collect(containerCreator: () -> A, accumulator: (A, T) -> A, finisher: (A) -> R): R {
-    val container = containerCreator()
-    forEach { accumulator(container, it) }
+    var container = containerCreator()
+    forEach { container = accumulator(container, it) }
     return finisher(container)
 }
 
@@ -183,6 +183,10 @@ fun <T> FunctionalStream<T>.count(): Long {
     return result.get()
 }
 
+fun <T> FunctionalStream<T>.size(): Long {
+    return count()
+}
+
 /**
  * Terminate this {@link FunctionalStream} and return
  * the first element in this {@link FunctionalStream}.
@@ -255,7 +259,7 @@ fun <T> FunctionalStream<T>.min(comparator: Comparator<T>): Optional<T> {
  * @return the smallest element of this {@link FunctionalStream} or none.
  * @see Stream#min(Comparator) for more information regarding this method
  */
-fun <T: Comparable<T>> FunctionalStream<T>.min(): Optional<T> {
+fun <T : Comparable<T>> FunctionalStream<T>.min(): Optional<T> {
     return min(Comparator.naturalOrder())
 }
 
@@ -294,7 +298,7 @@ fun <T> FunctionalStream<T>.max(comparator: Comparator<T>): Optional<T> {
  * @return the smallest element of this {@link FunctionalStream} or none.
  * @see Stream#max(Comparator) for more information regarding this method
  */
-fun <T: Comparable<T>> FunctionalStream<T>.max(): Optional<T> {
+fun <T : Comparable<T>> FunctionalStream<T>.max(): Optional<T> {
     return max(Comparator.naturalOrder())
 }
 
@@ -313,10 +317,8 @@ fun FunctionalStream<Float>.sum(identity: Float = 0f): Float {
 
 /**
  * Terminate and reduce this {@link FunctionalStream} to
- * a {@link Float}. The {@link Function} will map every
- * element to type {@link Float}.
+ * a {@link Float}.
  *
- * @param floatFunction the {@link Function} to produce the {@link Float}'s
  * @param identity      the identity value for the reduction
  * @return the multiplication of every {@link Float}
  */
@@ -326,10 +328,23 @@ fun FunctionalStream<Float>.multiplication(identity: Float = 1f): Float {
 
 /**
  * Terminate and reduce this {@link FunctionalStream} to
- * a {@link Double}. The {@link Function} will map every
- * element to type {@link Double}.
+ * a {@link Float}.
  *
- * @param doubleFunction the {@link Function} to produce the {@link Double}'s
+ * @param identity      the identity value for the reduction
+ * @return the multiplication of every {@link Float}
+ */
+fun FunctionalStream<Float>.average(identity: Float = 0f): Float {
+    val size = AtomicLong(0)
+    return collect({ identity }, { a, b ->
+        size.incrementAndGet()
+        a + b
+    }) { it / size.get() }
+}
+
+/**
+ * Terminate and reduce this {@link FunctionalStream} to
+ * a {@link Double}.
+ *
  * @param identity       the identity value for the reduction
  * @return the sum of every {@link Double}
  */
@@ -339,10 +354,8 @@ fun FunctionalStream<Double>.sum(identity: Double = 0.0): Double {
 
 /**
  * Terminate and reduce this {@link FunctionalStream} to
- * a {@link Double}. The {@link Function} will map every
- * element to type {@link Double}.
+ * a {@link Double}.
  *
- * @param doubleFunction the {@link Function} to produce the {@link Double}'s
  * @param identity       the identity value for the reduction
  * @return the multiplication of every {@link Double}
  */
@@ -352,10 +365,23 @@ fun FunctionalStream<Double>.multiplication(identity: Double = 1.0): Double {
 
 /**
  * Terminate and reduce this {@link FunctionalStream} to
- * a {@link Integer}. The {@link Function} will map every
- * element to type {@link Integer}.
+ * a {@link Double}.
  *
- * @param integerFunction the {@link Function} to produce the {@link Integer}'s
+ * @param identity      the identity value for the reduction
+ * @return the multiplication of every {@link Double}
+ */
+fun FunctionalStream<Double>.average(identity: Double = 0.0): Double {
+    val size = AtomicLong(0)
+    return collect({ identity }, { a, b ->
+        size.incrementAndGet()
+        a + b
+    }) { it / size.get() }
+}
+
+/**
+ * Terminate and reduce this {@link FunctionalStream} to
+ * a {@link Integer}.
+ *
  * @param identity        the identity value for the reduction
  * @return the sum of every {@link Integer}
  */
@@ -365,10 +391,8 @@ fun FunctionalStream<Int>.sum(identity: Int = 0): Int {
 
 /**
  * Terminate and reduce this {@link FunctionalStream} to
- * a {@link Integer}. The {@link Function} will map every
- * element to type {@link Integer}.
+ * a {@link Integer}.
  *
- * @param integerFunction the {@link Function} to produce the {@link Integer}'s
  * @param identity        the identity value for the reduction
  * @return the multiplication of every {@link Integer}
  */
@@ -378,10 +402,24 @@ fun FunctionalStream<Int>.multiplication(identity: Int = 1): Int {
 
 /**
  * Terminate and reduce this {@link FunctionalStream} to
- * a {@link Long}. The {@link Function} will map every
- * element to type {@link Long}.
+ * a {@link Int}.
  *
- * @param longFunction the {@link Function} to produce the {@link Long}'s
+ * @param identity      the identity value for the reduction
+ * @return the multiplication of every {@link Int}
+ */
+fun FunctionalStream<Int>.average(identity: Int = 0): Int {
+    val size = AtomicLong(0)
+    return collect({ identity }, { a, b ->
+        println("a: $a, b: $b   size: $size")
+        size.incrementAndGet()
+        a + b
+    }) { (it / size.get()).toInt() }
+}
+
+/**
+ * Terminate and reduce this {@link FunctionalStream} to
+ * a {@link Long}.
+ *
  * @param identity     the identity value for the reduction
  * @return the sum of every {@link Long}
  */
@@ -391,15 +429,28 @@ fun FunctionalStream<Long>.sum(identity: Long = 0): Long {
 
 /**
  * Terminate and reduce this {@link FunctionalStream} to
- * a {@link Long}. The {@link Function} will map every
- * element to type {@link Long}.
+ * a {@link Long}.
  *
- * @param longFunction the {@link Function} to produce the {@link Long}'s
  * @param identity     the identity value for the reduction
  * @return the multiplication of every {@link Long}
  */
 fun FunctionalStream<Long>.multiplication(identity: Long = 1): Long {
     return reduce(identity) { a, b -> a * b }
+}
+
+/**
+ * Terminate and reduce this {@link FunctionalStream} to
+ * a {@link Long}.
+ *
+ * @param identity      the identity value for the reduction
+ * @return the multiplication of every {@link Long}
+ */
+fun FunctionalStream<Long>.average(identity: Long = 0): Long {
+    val size = AtomicLong(0)
+    return collect({ identity }, { a, b ->
+        size.incrementAndGet()
+        a + b
+    }) { it / size.get() }
 }
 
 fun <T> FunctionalStream<T>.reduce(accumulator: ((T, T) -> T)): T {

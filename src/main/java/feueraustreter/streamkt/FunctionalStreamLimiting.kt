@@ -11,10 +11,10 @@ import java.util.concurrent.atomic.AtomicLong
  * @return the new {@link FunctionalStream}
  * @see Stream#limit(long) for more information regarding this method
  */
-fun <T> FunctionalStream<T>.take(count: Long): FunctionalStream<T> =
+infix fun <T> FunctionalStream<T>.take(count: Long): FunctionalStream<T> =
     limit(count)
 
-fun <T> FunctionalStream<T>.takeWhile(predicate: (T) -> Boolean): FunctionalStream<T> {
+infix fun <T> FunctionalStream<T>.takeWhile(predicate: (T) -> Boolean): FunctionalStream<T> {
     val skip = AtomicBoolean(true)
     return filter {
         if (skip.get()) {
@@ -32,7 +32,7 @@ fun <T> FunctionalStream<T>.takeWhile(predicate: (T) -> Boolean): FunctionalStre
  * @return the new {@link FunctionalStream}
  * @see Stream#limit(long) for more information regarding this method
  */
-fun <T> FunctionalStream<T>.limit(count: Long): FunctionalStream<T> {
+infix fun <T> FunctionalStream<T>.limit(count: Long): FunctionalStream<T> {
     if (count <= 0) {
         throw IllegalArgumentException("count must be greater than 0")
     }
@@ -54,7 +54,7 @@ fun <T> FunctionalStream<T>.limit(count: Long): FunctionalStream<T> {
  * @return the new {@link FunctionalStream}
  * @see Stream#skip(long) for more information regarding this method
  */
-fun <T> FunctionalStream<T>.skip(count: Long): FunctionalStream<T> {
+infix fun <T> FunctionalStream<T>.skip(count: Long): FunctionalStream<T> {
     if (count <= 0) {
         throw IllegalArgumentException("count must be greater than 0")
     }
@@ -62,7 +62,7 @@ fun <T> FunctionalStream<T>.skip(count: Long): FunctionalStream<T> {
     return filter { current.incrementAndGet() > count }
 }
 
-fun <T> FunctionalStream<T>.skipWhile(predicate: (T) -> Boolean): FunctionalStream<T> {
+infix fun <T> FunctionalStream<T>.skipWhile(predicate: (T) -> Boolean): FunctionalStream<T> {
     val skip = AtomicBoolean(true)
     return filter {
         if (skip.get()) {
@@ -79,9 +79,9 @@ fun <T> FunctionalStream<T>.skipWhile(predicate: (T) -> Boolean): FunctionalStre
  * @param count the skipping count
  * @return the new {@link FunctionalStream}
  */
-fun <T> FunctionalStream<T>.drop(count: Long): FunctionalStream<T> = skip(count)
+infix fun <T> FunctionalStream<T>.drop(count: Long): FunctionalStream<T> = skip(count)
 
-fun <T> FunctionalStream<T>.dropWhile(predicate: (T) -> Boolean): FunctionalStream<T> = skipWhile(predicate)
+infix fun <T> FunctionalStream<T>.dropWhile(predicate: (T) -> Boolean): FunctionalStream<T> = skipWhile(predicate)
 
 /**
  * Keep a portion of this {@link FunctionalStream} by skipping
@@ -99,6 +99,6 @@ fun <T> FunctionalStream<T>.keep(from: Long, to: Long): FunctionalStream<T> {
     return skip(from).limit(to - from)
 }
 
-fun <T> FunctionalStream<T>.keepWhile(predicate: (T) -> Boolean): FunctionalStream<T> {
+infix fun <T> FunctionalStream<T>.keepWhile(predicate: (T) -> Boolean): FunctionalStream<T> {
     return dropWhile(predicate).takeWhile { !predicate(it) }
 }

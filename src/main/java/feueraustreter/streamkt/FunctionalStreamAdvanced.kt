@@ -106,7 +106,7 @@ fun <T, K> FunctionalStream<T>.flatMerge(mapper: ((T) -> FunctionalStream<K>), c
     }).flatten()
 }
 
-fun <T, V> FunctionalStream<T>.merge(other: FunctionalStream<V>): FunctionalStream<Pair<T, V>> {
+infix fun <T, V> FunctionalStream<T>.merge(other: FunctionalStream<V>): FunctionalStream<Pair<T, V>> {
     return zip(other) { k, v -> feueraustreter.utils.Pair.of(k, v) }
 }
 
@@ -114,7 +114,7 @@ fun <T, O, K> FunctionalStream<T>.merge(other: FunctionalStream<O>, zipper: ((T,
     return zip(other, zipper)
 }
 
-fun <T, V> FunctionalStream<T>.zip(other: FunctionalStream<V>): FunctionalStream<Pair<T, V>> {
+infix fun <T, V> FunctionalStream<T>.zip(other: FunctionalStream<V>): FunctionalStream<Pair<T, V>> {
     return zip(other) { k, v -> feueraustreter.utils.Pair.of(k, v) }
 }
 
@@ -186,7 +186,7 @@ fun <T, K> FunctionalStream<T>.mapWithSizeOfStream(mapper: ((T, Long) -> K)): Fu
     })
 }
 
-fun <T> FunctionalStream<T>.batch(batchSize: Long): FunctionalStream<FunctionalStream<T>> {
+infix fun <T> FunctionalStream<T>.batch(batchSize: Long): FunctionalStream<FunctionalStream<T>> {
     val current = this
     val currentBatch = AtomicReference<FunctionalStream<T>>(null)
     return of(object : Iterator<FunctionalStream<T>> {
