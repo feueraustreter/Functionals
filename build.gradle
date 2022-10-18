@@ -14,12 +14,12 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'org.projectlombok:lombok:1.18.18'
-    annotationProcessor 'org.projectlombok:lombok:1.18.18'
+    compileOnly 'org.projectlombok:lombok:1.18.22'
+    annotationProcessor 'org.projectlombok:lombok:1.18.22'
 
     // Tests
-    testCompileOnly 'org.projectlombok:lombok:1.18.18'
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.18'
+    testCompileOnly 'org.projectlombok:lombok:1.18.22'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.22'
 
     testImplementation 'junit:junit:4.13'
     testImplementation 'org.hamcrest:hamcrest:2.2'
